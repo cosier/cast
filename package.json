@@ -19,7 +19,9 @@
   "bugs": {
     "url": "https://github.com/cosier/nuklear-sphinx/issues"
   },
-  "main": "nuklear/transform.js",
+  "bin": {
+    "nuklear-sphinx": "bin/nuklear-sphinx.js"
+  },
   "scripts": {
     "clean": "rimraf dist",
     "compile": "$(npm bin)/better-npm-run compile",
@@ -79,6 +81,7 @@
       }
     }
   },
+  "dependencies": {},
   "devDependencies": {
     "better-npm-run": "^0.1.0",
     "webpack": "^3.5.5",
@@ -100,8 +103,6 @@
     "eslint-plugin-jsx-a11y": "^5.1.1",
     "eslint-plugin-promise": "^3.5.0",
     "eslint-plugin-standard": "^2.1.1",
-    "eslint-config-google": "^0.9.1",
-    "tape": "^4.8.0"
-  },
-  "dependencies": {}
+    "eslint-config-google": "^0.9.1"
+  }
 }
