@@ -24,16 +24,15 @@
   },
   "scripts": {
     "clean": "rimraf dist",
-    "compile": "$(npm bin)/better-npm-run compile",
-    "test": "$(npm bin)/better-npm-run test",
-    "test:dev": "$(npm bin)/better-npm-run test:dev",
+    "build": "$(npm bin)/better-npm-run build",
+    "test": "bin/test.sh",
     "lint": "$(npm bin)/better-npm-run lint",
     "lint:watch": "$(npm bin)/esw -c .eslintrc.yml -w --color",
     "lint:full": "npm run lint -- src tests server build config",
     "lint:fix": "npm run lint -- --fix"
   },
   "betterScripts": {
-    "compile": {
+    "build": {
       "command": "node bin/compile",
       "env": {
         "DEBUG": "app:*"
@@ -59,22 +58,8 @@
         "DEBUG": "app:*"
       }
     },
-    "test": {
-      "command": "babel-node ./node_modules/karma/bin/karma start tests/karma.conf",
-      "env": {
-        "NODE_ENV": "test",
-        "DEBUG": "app:*"
-      }
-    },
-    "test:dev": {
-      "command": "babel-node ./node_modules/karma/bin/karma start tests/karma.conf --auto-watch --watch",
-      "env": {
-        "NODE_ENV": "test",
-        "DEBUG": "app:*"
-      }
-    },
     "lint": {
-      "command": "$(npm bin)/eslint -c .eslintrc.js tests nuklear",
+      "command": "$(npm bin)/eslint -c .eslintrc.js tests src",
       "env": {
         "NODE_ENV": "test",
         "DEBUG": "app:*"
@@ -83,19 +68,18 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "better-npm-run": "^0.1.0",
-    "webpack": "^3.5.5",
+    "ajv": ">=4.10.0",
     "babel-cli": "^6.18.0",
     "babel-core": "^6.3.17",
     "babel-eslint": "^7.1.1",
     "babel-jest": "^19.0.0",
     "babel-loader": "^7.1.1",
+    "better-npm-run": "^0.1.0",
+    "chai": "^3.4.1",
+    "chai-as-promised": "^6.0.0",
     "codecov": "^1.0.1",
-    "karma": "^1.0.0",
-    "karma-coverage": "^1.0.0",
-    "ajv": ">=4.10.0",
     "eslint": "^4.7.1",
-    "eslint-watch": "^3.0.1",
+    "eslint-config-google": "^0.9.1",
     "eslint-import-resolver-webpack": "^0.8.1",
     "eslint-plugin-babel": "^4.1.1",
     "eslint-plugin-dependencies": "^2.2.0",
@@ -103,6 +87,18 @@
     "eslint-plugin-jsx-a11y": "^5.1.1",
     "eslint-plugin-promise": "^3.5.0",
     "eslint-plugin-standard": "^2.1.1",
-    "eslint-config-google": "^0.9.1"
+    "eslint-watch": "^3.0.1",
+    "babel-plugin-transform-decorators-legacy": "^1.3.4",
+    "babel-plugin-transform-es3-member-expression-literals": "^6.8.0",
+    "babel-plugin-transform-es3-property-literals": "^6.8.0",
+    "babel-plugin-transform-runtime": "^6.9.0",
+    "babel-preset-es2015": "^6.9.0",
+    "babel-preset-stage-0": "^6.5.0",
+    "mocha": "^3.5.3",
+    "mocha-webpack": "^1.0.0-rc.1",
+    "sinon": "^1.17.3",
+    "sinon-chai": "^2.8.0",
+    "webpack": "^3.6.0",
+    "webpack-dev-middleware": "^1.10.2"
   }
 }
