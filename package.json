@@ -21,11 +21,84 @@
   },
   "main": "nuklear/transform.js",
   "scripts": {
-    "test": "eslint . && tape"
+    "clean": "rimraf dist",
+    "compile": "better-npm-run compile",
+    "test": "better-npm-run test",
+    "test:dev": "better-npm-run test:dev",
+    "lint": "better-npm-run lint",
+    "lint:watch": "$(npm bin)/esw -c .eslintrc.yml -w --color",
+    "lint:full": "npm run lint -- src tests server build config",
+    "lint:fix": "npm run lint -- --fix"
+  },
+  "betterScripts": {
+    "compile": {
+      "command": "node bin/compile",
+      "env": {
+        "DEBUG": "app:*"
+      }
+    },
+    "deploy": {
+      "command": "npm run clean && npm run compile",
+      "env": {
+        "DEBUG": "app:*"
+      }
+    },
+    "deploy:dev": {
+      "command": "npm run deploy",
+      "env": {
+        "NODE_ENV": "development",
+        "DEBUG": "app:*"
+      }
+    },
+    "deploy:prod": {
+      "command": "npm run deploy",
+      "env": {
+        "NODE_ENV": "production",
+        "DEBUG": "app:*"
+      }
+    },
+    "test": {
+      "command": "babel-node ./node_modules/karma/bin/karma start tests/karma.conf",
+      "env": {
+        "NODE_ENV": "test",
+        "DEBUG": "app:*"
+      }
+    },
+    "test:dev": {
+      "command": "babel-node ./node_modules/karma/bin/karma start tests/karma.conf --auto-watch --watch",
+      "env": {
+        "NODE_ENV": "test",
+        "DEBUG": "app:*"
+      }
+    },
+    "lint": {
+      "command": "$(npm bin)/eslint -c .eslintrc.js",
+      "env": {
+        "NODE_ENV": "test",
+        "DEBUG": "app:*"
+      }
+    }
   },
   "devDependencies": {
+    "webpack": "^3.5.5",
+    "babel-cli": "^6.18.0",
+    "babel-core": "^6.3.17",
+    "babel-eslint": "^7.1.1",
+    "babel-jest": "^19.0.0",
+    "babel-loader": "^7.1.1",
+    "codecov": "^1.0.1",
+    "karma": "^1.0.0",
+    "karma-coverage": "^1.0.0",
     "ajv": ">=4.10.0",
     "eslint": "^4.7.1",
+    "eslint-watch": "^3.0.1",
+    "eslint-import-resolver-webpack": "^0.8.1",
+    "eslint-plugin-babel": "^4.1.1",
+    "eslint-plugin-dependencies": "^2.2.0",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-jsx-a11y": "^5.1.1",
+    "eslint-plugin-promise": "^3.5.0",
+    "eslint-plugin-standard": "^2.1.1",
     "eslint-config-google": "^0.9.1",
     "tape": "^4.8.0"
   },
