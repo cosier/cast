@@ -43,7 +43,7 @@
       "command": "$(npm bin)/webpack --config build/webpack.config.js src"
     },
     "dev": {
-      "command": "babel-node --inspect src/cli/index.js",
+      "command": "node --inspect dist/index.js",
       "env": {
         "DEBUG": "app:*"
       }

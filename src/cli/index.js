@@ -1,7 +1,7 @@
 import yargs from 'yargs/yargs';
 import debug from 'debug'
 
-import {doctor} from 'processor';
+import {doctor} from '../processor';
 
 // Examine process args and strip away any shell scruff
 function args() {
@@ -34,9 +34,11 @@ function exec() {
         }
       }, (argv) => {
         if (!argv.input || !argv.output) {
-          console.error("\nBoth [input] and [output] needed to be specified\n")
+            console.error(
+                "\nBoth [input] and [output] needed to be specified\n")
         } else {
-          process.exit(doctor(argv.input, argv.output))
+            process.exit(
+                doctor(argv.input, argv.output) && 0 || 1)
         }
       })
 
