@@ -25,6 +25,8 @@
   },
   "scripts": {
     "dev": "$(npm bin)/better-npm-run dev",
+    "sample": "$(npm bin)/better-npm-run sample",
+    "sample-stdout": "$(npm bin)/better-npm-run sample-stdout",
     "debug": "$(npm bin)/better-npm-run debug",
     "clean": "rimraf dist",
     "compile": "$(npm bin)/better-npm-run compile",
@@ -41,6 +43,18 @@
     },
     "compile": {
       "command": "$(npm bin)/webpack --config build/webpack.config.js src"
+    },
+    "sample-stdout": {
+      "command": "$(npm bin)/better-npm-run dev -- transform specimen/sample.h",
+      "env": {
+        "DEBUG": "app:*"
+      }
+    },
+    "sample": {
+      "command": "$(npm bin)/better-npm-run dev -- transform specimen/sample.h tmp/output.h",
+      "env": {
+        "DEBUG": "app:*"
+      }
     },
     "dev": {
       "command": "node --inspect dist/index.js",

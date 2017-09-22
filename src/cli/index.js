@@ -23,29 +23,33 @@ function args() {
 
 // Execute command line switches
 function exec() {
-  const parser = yargs()
-    .usage('$0 <cmd> [args]')
-    .command(
-      'transform [input] [output]',
-      'transform input docs into output destination', {
-        name: {
-          default: 'transform',
-          describe: 'file you wish to extract docs from'
-        }
-      }, (argv) => {
-        if (!argv.input || !argv.output) {
-            console.error(
-                "\nBoth [input] and [output] needed to be specified\n")
-        } else {
-            process.exit(
-                doctor(argv.input, argv.output) && 0 || 1)
-        }
-      })
+    const parser = yargs()
+          .usage('$0 <cmd> [args]')
+          .command(
+              'transform [input] [output]',
+              'transform input docs into output destination', {
+                  name: {
+                      default: 'transform',
+                      describe: 'file you wish to extract docs from'
+                  }
+              }, (argv) => {
+                  if (!argv.input) {
+                      console.error(
+                          "\nFile [input] needs to be specified\n")
+                  } else {
+                      let ret = 1;
+                      if (doctor(argv.input, argv.output)) {
+                          ret = 0;
+                      }
 
-  const parsed = parser.parse(args());
+                      process.exit(ret)
+                  }
+              })
 
-  // Show help screen if nothing else..
-  parser.help().parse(["--help"])
+    const parsed = parser.parse(args());
+
+    // Show help screen if nothing else..
+    parser.help().parse(["--help"])
 }
 
 export {exec};
