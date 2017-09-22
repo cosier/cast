@@ -1,6 +1,0 @@
-{
-  "ui": "bdd",
-  "bail": false,
-  "reporter": "spec",
-  "colors": true
-}
