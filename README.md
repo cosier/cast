@@ -1,17 +1,17 @@
-# nuklear-sphinx
+# nuklear-doctor
 
-Converting Nuklear.h style documentation in reStructedText Markup :-)
+Converting Nuklear.h style documentation to doxygen for parsing by sphinx :-)
 
-The generated documentation can then be
+The generated documentation can be
 processed by [Sphinx](http://sphinx-doc.org/).
 
 ## Getting Started
 
-Use NPM to install nuklear-sphinx
+Use NPM to install nuklear-doctor
 
 ```bash
-npm install nuklear-sphinx
-nuklear-sphinx --header=/path/to/nuklear.h > nuklear_restructed.h
+npm install nuklear-doctor
+nuklear-doctor transform nuklear.h nuklear_output.h
 ```
 
 ## Reference

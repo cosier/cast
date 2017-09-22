@@ -1,14 +1,14 @@
 {
-  "name": "nuklear-sphinx",
+  "name": "nuklear-doctor",
   "version": "0.0.1",
   "author": "Bailey Cosier",
-  "homepage": "https://github.com/cosier/nuklear-sphinx#readme",
-  "description": "Automatically translate Nuklear style documentation to reStructured Text",
+  "homepage": "https://github.com/cosier/nuklear-doctor#readme",
+  "description": "Automatically translate Nuklear style documentation to doxygen",
   "license": "MIT",
   "main": "dist/index.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cosier/nuklear-sphinx.git"
+    "url": "git+https://github.com/cosier/nuklear-doctor.git"
   },
   "keywords": [
     "nuklear",
@@ -18,10 +18,10 @@
     "transpiler"
   ],
   "bugs": {
-    "url": "https://github.com/cosier/nuklear-sphinx/issues"
+    "url": "https://github.com/cosier/nuklear-doctor/issues"
   },
   "bin": {
-    "nuklear-sphinx": "bin/nuklear-sphinx.js"
+    "nuklear-sphinx": "bin/nuklear-doctor.js"
   },
   "scripts": {
     "dev": "$(npm bin)/better-npm-run dev",
