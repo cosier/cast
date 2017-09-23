@@ -5,7 +5,7 @@ import {doctor} from './processor';
 /**
  * CLI Log helper
  */
-const log = logger('cli');
+const log = logger('doctor.cli');
 
 /**
  * Examine process args and strip away any shell scruff
@@ -23,6 +23,11 @@ function args() {
   if (args[0].indexOf(".js") >= 0) {
     args.shift()
   }
+
+    // Clean double stdin redirection
+    if (args[0] === "--") {
+        args.shift()
+    }
 
   return args
 }
@@ -72,9 +77,15 @@ function exec() {
                   }
               }).help()
 
+    // Parse the cli arguments and execute commands.
     const parsed = parser.parse(args());
+
+    // Detect no commands were executed and bring up the help.
     if (!executed) {
-        // Show help screen if nothing else..
+        if (args().length > 0) {
+            log.error("Sorry, we couldn't recoginize your arguments", args(), "\n")
+        }
+
         parser.help().parse(["--help"])
     }
 }
