@@ -31,7 +31,7 @@
     "clean": "rimraf dist",
     "compile": "$(npm bin)/better-npm-run compile",
     "watch": "$(npm bin)/better-npm-run watch",
-    "test": "bin/test.sh",
+    "test": "$(npm bin)/better-npm-run test",
     "lint": "$(npm bin)/better-npm-run lint",
     "lint:watch": "$(npm bin)/esw -c .eslintrc.yml -w --color",
     "lint:full": "npm run lint -- src tests server build config",
@@ -79,6 +79,13 @@
       "command": "npm run deploy",
       "env": {
         "NODE_ENV": "production",
+        "DEBUG": "app:*"
+      }
+    },
+    "test": {
+      "command": "$(npm bin)/mocha-webpack --webpack-config build/webpack.config.test.js --watch --glob '*.spec.js' tests",
+      "env": {
+        "NODE_ENV": "test",
         "DEBUG": "app:*"
       }
     },
