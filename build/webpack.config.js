@@ -10,7 +10,6 @@ const {__DEV__, __PROD__, __TEST__} = config.globals;
 // Entry Points
 // -------------------------------------------------------------------
 const APP_ENTRY_PATHS = [
-    // 'babel-polyfill',
     paths.client('index.js'),
 ];
 
@@ -33,7 +32,7 @@ const webpackConfig = {
 
     resolve: {
         modules: appModulePaths,
-        extensions: ['.js', '.jsx', '.json'],
+        extensions: ['.js', '.json'],
     },
 };
 
@@ -56,38 +55,6 @@ webpackConfig.output = {
 };
 
 webpackConfig.externals = [ /^(?!\.|\/).+/i, ]
-
-
-// -------------------------------------------------------------------
-// Webpack Rules
-// -------------------------------------------------------------------
-// JavaScript / JSON
-// webpackConfig.module.rules = [{
-// test: /\.(js|jsx)$/,
-// exclude: /node_modules/,
-// loader: 'babel-loader',
-// query: {
-// cacheDirectory: true,
-// plugins: [
-// 'transform-runtime',
-// 'transform-decorators-legacy',
-// 'transform-es3-property-literals',
-// 'transform-es3-member-expression-literals',
-// ],
-// presets: ['es2015', 'stage-0'],
-// env: {
-// production: {
-// // presets: ['react-optimize'],
-// },
-
-// "development": {
-// "plugins": []
-// }
-
-// },
-// },
-// },
-// ];
 
 
 module.exports = webpackConfig;
