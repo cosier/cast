@@ -8,11 +8,20 @@
  * @license MIT
  */
 
-
 import fs, {writeFileSync as write, existsSync as exists} from 'fs';
 import readline from 'readline';
 import {logger} from './utils';
 import {resolve} from 'path';
+
+/**
+ * Precompild Regex selectors for function tokens
+ */
+const REGEX = {
+    // C type function declaration
+    c_fn_decl: /[aA0-zZ9_\s]+\(.*\)/,
+    c_struct_decl: /struct[\s]+/,
+    c_enum_decl: /enum[\s]+/,
+}
 
 /**
  * Utility log namespaced helper
@@ -32,7 +41,7 @@ function create_node(start, ref_id) {
         ref_id: ref_id,
         start: start,
         end: null,
-        data: [],
+        data: []
     };
     return entry;
 }
@@ -47,16 +56,19 @@ function create_node(start, ref_id) {
  * @param type  String node type identifier, possible options: 'comm' or 'code'.
  */
 function process_node(ast, state, line, type) {
-    const ref_id = state[`prev_${ast.config[type].ref}_ptr`];
+    const ref_id = state[`prev_${state.config[type].ref}_ptr`];
     const index = state[`curr_${type}_ptr`];
 
-    const container = ast.config[type].container;
+    const container = state.config[type].container;
     let node = ast[container][index];
 
     if (!node) {
         node = create_node(index, ref_id);
         ast[container][index] = node;
     }
+
+    // Manage an index for lookback searching
+    ast.index[state.line] = { node_id: index, type: type }
 
     node.data.push(line);
 }
@@ -72,6 +84,12 @@ function process_line(ast, state, line) {
     let closing_comment = false;
     let closing_code = false;
     let ln = line.trim();
+
+    if (ln.indexOf('#') == 0 || ln == '') {
+        ast.index[state.line] = { type: 'na' }
+        state.line++;
+        return;
+    }
 
 
     // Detect tokens
@@ -93,12 +111,25 @@ function process_line(ast, state, line) {
             state.curr_comm_ptr = state.line;
         }
 
-        else if (ln.indexOf("function") >= 0) {
+        else if (ln.match(REGEX.c_fn_decl) ||
+                 ln.match(REGEX.c_struct_decl) ||
+                 ln.match(REGEX.c_enum_decl)) {
+
             state.curr_code_ptr = state.line;
-            state.inside.code = true;
+
+            // Handle one line declarations
+            if (ln.indexOf(';') >= 0) {
+                closing_code = true;
+            } else {
+                state.inside.code = true;
+            }
+
+            // Bump code depth automatically depending on brace style
             if (ln.indexOf("{") >= 0) {
                 state.depth = 1;
             }
+        } else {
+            log(state.line + 1, ln);
         }
     }
 
@@ -125,8 +156,13 @@ function process_line(ast, state, line) {
         process_node(ast, state, line, 'comm');
     }
 
-    if (state.inside.code || closing_code) {
+    else if (state.inside.code || closing_code) {
         process_node(ast, state, line, 'code');
+    }
+
+    else {
+        log.error("non-reachable: unknown state",
+                  { no: state.line + 1, line});
     }
 
     // Scope cleanup
@@ -151,33 +187,31 @@ function process_line(ast, state, line) {
  * @return String
  */
 async function process_tree(ipath) {
-    const ast = await gen_ast(ipath);
+
+    // Stream input into a sizable buffer to work with,
+    // Consuming the stream line by line.
+    const reader = readline.createInterface({
+        input: fs.createReadStream(ipath),
+        console: false
+    });
+
+    const ast = await gen_ast(reader);
     return `<process::success::${ast.source.length}>`;
 }
 
 /**
-  * Generate an Abstract Syntax Tree from source file
-  * @return object
+  * Generate an Abstract Syntax Tree from source buffer stream
+  * @return object Returns the AST object
   */
-function gen_ast(ipath) {
+function gen_ast(buffer) {
     const compute = new Promise((resolve, reject)=>{
         log("Async AST Generation");
         let ast = {
             source: [],
             comments: [],
             code: [],
-            config: {
-                comm: { ref: 'code', container: 'comments' },
-                code: { ref: 'comm', container: 'code' }
-            }
+            index: []
         }
-
-        // Stream input into a sizable buffer to work with,
-        // Consuming the stream line by line.
-        const reader = readline.createInterface({
-            input: fs.createReadStream(ipath),
-            console: false
-        });
 
         // Setup state pointers for code tracking
         let state = {
@@ -192,15 +226,28 @@ function gen_ast(ipath) {
 
             // Scope depth tracking
             depth: 0,
-            line: 0
+            line: 0,
+
+            // Runtime config
+            config: {
+                comm: { ref: 'code', container: 'comments' },
+                code: { ref: 'comm', container: 'code' }
+            }
         };
 
-        reader.on('line', (line) => {
+        buffer.on('line', (line) => {
+            // log("line data", line);
             process_line(ast, state, line)
         });
 
-        reader.on('close', (fin) => {
+        buffer.on('close', (fin) => {
             log(`processed ${ast.comments.length} comments`)
+            log(`processed ${ast.code.length} code points`)
+            resolve(ast);
+        });
+
+        buffer.on('end', () => {
+            log('buffer.end');
             resolve(ast);
         });
     })
@@ -263,4 +310,4 @@ async function doctor(input, output) {
 /**
  * Expose doctor interface
  */
-export {doctor}
+export {doctor, gen_ast}

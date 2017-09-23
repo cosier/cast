@@ -12,7 +12,7 @@
   },
   "keywords": [
     "nuklear",
-    "sphinx",
+    "doxygen",
     "autodoc",
     "documentation",
     "transpiler"
@@ -137,6 +137,7 @@
     "mocha-webpack": "^1.0.0-rc.1",
     "sinon": "^1.17.3",
     "sinon-chai": "^2.8.0",
+    "stream-buffers": "^3.0.1",
     "webpack": "^3.6.0",
     "webpack-dev-middleware": "^1.10.2"
   }
