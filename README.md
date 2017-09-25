@@ -1,22 +1,17 @@
-# nuklear-doctor
+# cast
 
-Converting Nuklear.h style documentation to doxygen for parsing by sphinx :-)
+Generates an AST from Ansi C source code.
 
-The generated documentation can be
-processed by [Sphinx](http://sphinx-doc.org/).
+Cast can be used as a javascript library, or as a command line tool that outputs an AST in JSON.
 
 ## Getting Started
 
-Use NPM to install nuklear-doctor
+Use NPM to install cast
 
 ```bash
-npm install nuklear-doctor
-nuklear-doctor transform nuklear.h nuklear_output.h
+npm install c-ast
+c-ast transform code.c ast.json
 ```
-
-## Reference
-
-- http://github.com/vurtun/nuklear
 
 ## License
 Licensed under The MIT License (MIT)
