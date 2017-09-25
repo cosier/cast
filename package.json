@@ -1,27 +1,26 @@
 {
-  "name": "nuklear-doctor",
+  "name": "c-ast",
   "version": "0.0.1",
   "author": "Bailey Cosier",
-  "homepage": "https://github.com/cosier/nuklear-doctor#readme",
-  "description": "Automatically translate Nuklear style documentation to doxygen",
+  "homepage": "https://github.com/cosier/cast#readme",
+  "description": "Ansi C AST Generator",
   "license": "MIT",
   "main": "dist/index.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cosier/nuklear-doctor.git"
+    "url": "git+https://github.com/cosier/cast.git"
   },
   "keywords": [
-    "nuklear",
-    "doxygen",
-    "autodoc",
-    "documentation",
-    "transpiler"
+    "abstract syntax tree",
+    "syntax",
+    "tree",
+    "ast",
   ],
   "bugs": {
-    "url": "https://github.com/cosier/nuklear-doctor/issues"
+    "url": "https://github.com/cosier/cast/issues"
   },
   "bin": {
-    "nuklear-sphinx": "bin/nuklear-doctor.js"
+    "c-ast": "bin/cast.js"
   },
   "scripts": {
     "dev": "$(npm bin)/better-npm-run dev",
@@ -83,7 +82,7 @@
       }
     },
     "test": {
-      "command": "$(npm bin)/mocha-webpack --webpack-config build/webpack.config.test.js --watch  -R $REPORTER --glob '*.spec.js' tests",
+      "command": "node --inspect $(npm bin)/mocha-webpack --webpack-config build/webpack.config.test.js --watch  -R $REPORTER --glob '*.spec.js' tests",
       "env": {
         "REPORTER": "nyan",
         "NODE_ENV": "test",
