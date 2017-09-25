@@ -83,8 +83,9 @@
       }
     },
     "test": {
-      "command": "$(npm bin)/mocha-webpack --webpack-config build/webpack.config.test.js --watch --glob '*.spec.js' tests",
+      "command": "$(npm bin)/mocha-webpack --webpack-config build/webpack.config.test.js --watch  -R $REPORTER --glob '*.spec.js' tests",
       "env": {
+        "REPORTER": "nyan",
         "NODE_ENV": "test",
         "DEBUG": "app:*"
       }
@@ -133,7 +134,7 @@
     "eslint-plugin-promise": "^3.5.0",
     "eslint-plugin-standard": "^2.1.1",
     "eslint-watch": "^3.0.1",
-    "mocha": "^3.5.3",
+    "mocha": "cosier/mocha",
     "mocha-webpack": "^1.0.0-rc.1",
     "sinon": "^1.17.3",
     "sinon-chai": "^2.8.0",

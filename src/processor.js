@@ -34,7 +34,7 @@ const log = logger('processor');
  * @param start Number identifying starting line for this node.
  * @param ref_id Number identifying associate reference id.
  *
- * @return Object function node
+ * @return {Object} function node
  */
 function create_node(start, ref_id) {
     let entry = {
@@ -47,13 +47,123 @@ function create_node(start, ref_id) {
 }
 
 /**
+ * Creates an empty State object
+ * @return {object} Fresh state
+ */
+function create_state() {
+    return {
+        // Scope presence tracking struct
+        inside: { comm: false, code: false, def: false },
+
+        prev_comm_ptr: null,
+        prev_code_ptr: null,
+        prev_def_ptr: null,
+
+        curr_comm_ptr: null,
+        curr_code_ptr: null,
+        curr_def_ptr: null,
+
+        // Scope depth tracking
+        depth: 0,
+        line: 0,
+
+        // Runtime config
+        config: {
+            comm: { ref: 'code', container: 'comments' },
+            code: { ref: 'comm', container: 'code' },
+            def: { ref: 'comm', container: 'defs' }
+        }
+    };
+}
+
+/**
+* Creates an AST structure with internal book keeping methods
+* @return {object} Empty AST definition
+*/
+function create_ast_struct() {
+    const ast = {
+        source: [],
+        comments: [],
+        code: [],
+        defs: [],
+        index: []
+    }
+
+    const presence = function(src) {
+        let accumulator = [];
+        for (let i = 0; i < src.length; i++) {
+            let c = ast.code[i];
+            if (c) { accumulator.push(c) };
+        }
+        return accumulator;
+    }
+
+    ast.code.present = () => (presence(ast.code))
+    ast.defs.present = () => (presence(ast.defs))
+    ast.comments.present = () => (presence(ast.comments))
+
+    return ast;
+}
+
+/**
+ * Parses input file path and returns AST result.
+ * @return {object}
+ */
+async function process_ast(ipath) {
+
+    // Stream input into a sizable buffer to work with,
+    // Consuming the stream line by line.
+    const reader = readline.createInterface({
+        input: fs.createReadStream(ipath),
+        console: false
+    });
+
+    const ast = await gen_ast(reader);
+    return ast;
+}
+
+/**
+  * Generate an Abstract Syntax Tree from source buffer stream
+  * @return {object} AST definition
+  */
+function gen_ast(buffer) {
+    // Create an empty ast tree to start with
+    const ast = create_ast_struct();
+
+    // Setup state for code parsing
+    const state = create_state();
+
+    // Asyncronously process our buffer into an AST
+    const compute = new Promise((resolve, reject)=>{
+
+        // line stack
+        const stack = [];
+
+        buffer.on('line', (line) => {
+            if (stack.length < 2) {
+                stack.push(line);
+            } else {
+                // log("line data", line);
+                process_line(ast, state, line)
+            }
+        });
+
+        buffer.on('close', (fin) => {
+            resolve(ast);
+        });
+    })
+
+    return compute;
+}
+
+/**
  * Handle node insertions.
  * Updates given AST with optional node insertion and data push.
  *
- * @param ast   Object Abstract Syntax Tree
- * @param state Object Shared runtime state and config
- * @param line  String line being fed in this iteration.
- * @param type  String node type identifier, possible options: 'comm' or 'code'.
+ * @param ast   {object} Abstract Syntax Tree
+ * @param state {object} Shared runtime state and config
+ * @param line  {string} line being fed in this iteration.
+ * @param type  {string} node type identifier, possible options: 'comm' or 'code'.
  */
 function process_node(ast, state, line, type) {
     const ref_id = state[`prev_${state.config[type].ref}_ptr`];
@@ -76,24 +186,27 @@ function process_node(ast, state, line, type) {
 /**
  * Process individual lines fed by the buffer stream.
  *
- * @param ast   Object Abstract Syntax Tree
- * @param state Object Shared runtime state and config
- * @param line  String line being fed in this iteration.
+ * @param ast   {object} Abstract Syntax Tree
+ * @param state {object} Shared runtime state and config
+ * @param line  {string} line being fed in this iteration.
  */
-function process_line(ast, state, line) {
+function process_line(ast, state, line, next_line) {
     let closing_comment = false;
     let closing_code = false;
-    let ln = line.trim();
+    let closing_def = false;
+
+    const ln = line.trim();
+    const inside = state.inside.code ||
+          state.inside.comm ||
+          state.inside.def;
 
     if (ln.indexOf('#') == 0 || ln == '') {
         ast.index[state.line] = { type: 'na' }
         state.line++;
         return;
     }
-
-
     // Detect tokens
-    if (ln.indexOf("/*") == 0) {
+    if (!inside && ln.indexOf("/*") == 0) {
         state.inside.comm = true;
         state.curr_comm_ptr = state.line;
     }
@@ -103,22 +216,32 @@ function process_line(ast, state, line) {
         closing_comment = true;
     }
 
-    // Possible branching outside of block comment.
-    else if (!state.inside.comm && !state.inside.code) {
+    // Possible branching outside of block comment variant.
+    else if (!state.inside.comm) {
+        log.hi(ln);
 
         if(ln.indexOf("//") == 0) {
             closing_comment = true;
             state.curr_comm_ptr = state.line;
         }
 
-        else if (ln.match(REGEX.c_fn_decl) ||
-                 ln.match(REGEX.c_struct_decl) ||
+        else if (ln.match(REGEX.c_struct_decl) ||
                  ln.match(REGEX.c_enum_decl)) {
+            state.inside.def = true;
 
+            // Bump code depth automatically depending on brace style
+            if (ln.indexOf("{") >= 0) {
+                state.depth = 1;
+            }
+        }
+
+        else if (ln.match(REGEX.c_fn_decl)) {
             state.curr_code_ptr = state.line;
+            log.hi("found a function");
 
             // Handle one line declarations
             if (ln.indexOf(';') >= 0) {
+                log.hi("closing code: " + ln);
                 closing_code = true;
             } else {
                 state.inside.code = true;
@@ -134,18 +257,27 @@ function process_line(ast, state, line) {
     }
 
     // Detect closing scope depths
-    if (state.inside.code) {
-        const open_count = (ln.match(/{/g) || []).length;
-        const close_count = (ln.match(/}/g) || []).length;
+    const scope_open = (ln.match(/{/g) || []).length;
+    const scope_close = (ln.match(/}/g) || []).length;
+    const scope_delta =  (scope_close - scope_open) - state.depth;
 
-        if ((close_count - open_count) - state.depth == 0) {
-            // Close the scope
-            state.inside.code = false;
+    if (state.inside.code || state.inside.def) {
+        // Close the scope
+        if (scope_delta == 0) {
             state.depth = 0;
 
-            closing_code = true;
+            // Handle definition before code points for nesting realization
+            if (state.inside.def) {
+                state.inside.def = false;
+                closing_def = true;
+            }
 
-        } else if (open_count > close_count) {
+            else if (state.inside.code) {
+                state.inside.code = false;
+                closing_code = true;
+            }
+
+        } else if (scope_open > scope_close) {
             // Increasing scope depth
             state.depth++
         }
@@ -160,12 +292,21 @@ function process_line(ast, state, line) {
         process_node(ast, state, line, 'code');
     }
 
+    else if (state.inside.def || closing_def) {
+        process_node(ast, state, line, 'def');
+    }
+
     else {
         log.error("non-reachable: unknown state",
                   { no: state.line + 1, line});
     }
 
     // Scope cleanup
+    if (closing_def) {
+        state.prev_def_ptr = state.curr_def_ptr;
+        state.curr_def_ptr = null;
+    }
+
     if (closing_code) {
         state.prev_code_ptr = state.curr_code_ptr;
         state.curr_code_ptr = null;
@@ -180,79 +321,6 @@ function process_line(ast, state, line) {
     ast.source.push(line);
 
     state.line++;
-}
-
-/**
- * Parses input file path and returns string result.
- * @return String
- */
-async function process_tree(ipath) {
-
-    // Stream input into a sizable buffer to work with,
-    // Consuming the stream line by line.
-    const reader = readline.createInterface({
-        input: fs.createReadStream(ipath),
-        console: false
-    });
-
-    const ast = await gen_ast(reader);
-    return `<process::success::${ast.source.length}>`;
-}
-
-/**
-  * Generate an Abstract Syntax Tree from source buffer stream
-  * @return object Returns the AST object
-  */
-function gen_ast(buffer) {
-    const compute = new Promise((resolve, reject)=>{
-        log("Async AST Generation");
-        let ast = {
-            source: [],
-            comments: [],
-            code: [],
-            index: []
-        }
-
-        // Setup state pointers for code tracking
-        let state = {
-            // Scope presence tracking struct
-            inside: { comm: false, code: false },
-
-            prev_comm_ptr: null,
-            prev_code_ptr: null,
-
-            curr_code_ptr: null,
-            curr_comm_ptr: null,
-
-            // Scope depth tracking
-            depth: 0,
-            line: 0,
-
-            // Runtime config
-            config: {
-                comm: { ref: 'code', container: 'comments' },
-                code: { ref: 'comm', container: 'code' }
-            }
-        };
-
-        buffer.on('line', (line) => {
-            // log("line data", line);
-            process_line(ast, state, line)
-        });
-
-        buffer.on('close', (fin) => {
-            log(`processed ${ast.comments.length} comments`)
-            log(`processed ${ast.code.length} code points`)
-            resolve(ast);
-        });
-
-        buffer.on('end', () => {
-            log('buffer.end');
-            resolve(ast);
-        });
-    })
-
-    return compute;
 }
 
 /**
@@ -291,14 +359,14 @@ async function doctor(input, output) {
     }
 
     if (!exists(ipath)) {
-        console.error(`Invalid input file: ${input}`);
+        log.error(`Invalid input file: ${input}`);
         return false;
     }
 
-    const result = await process_tree(ipath);
+    const result = await process_ast(ipath);
 
     if (stdout) {
-        console.log("[doctor] processed: " + result);
+        // console.log("[doctor] processed: " + result);
         success = true;
     } else if (result) {
         success = printf(opath, result)
