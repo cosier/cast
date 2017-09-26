@@ -111,7 +111,7 @@ function create_ast_struct() {
     const presence = function(src) {
         let accumulator = [];
         for (let i = 0; i < src.length; i++) {
-            let c = ast.code[i];
+            let c = src[i];
             if (c) { accumulator.push(c) };
         }
         return accumulator;
@@ -300,7 +300,6 @@ function process_line(ast, state, line, next_line) {
         // Close the scope if ; or } is present for struct / func respectively
         if (scope_delta == 0) {
             state.depth = 0;
-            log.error("hello");
 
             // Handle definition before code points for nesting realization
             if (state.inside.def) {
@@ -337,8 +336,8 @@ function process_line(ast, state, line, next_line) {
     }
 
     else if (state.inside.def || closing_def) {
-        log.error(`state.inside.def: ${state.inside.def}`)
-        log.error(`closing_def: ${closing_def}`)
+        // log.error(`state.inside.def: ${state.inside.def}`)
+        // log.error(`closing_def: ${closing_def}`)
         process_node(ast, state, line, 'def');
     }
 

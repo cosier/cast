@@ -31,7 +31,7 @@ const log = logger('spec');
 * Sets up a streaming buffer reader for test harnessing
 * @return {Buffer, Reader}
 */
-function setup() {
+function setup(sample) {
     const buffer = new streamBuffers.ReadableStreamBuffer({
 	      frequency: 10,   // in milliseconds.
 	      chunkSize: 32 * 2048  // in bytes.
@@ -40,16 +40,18 @@ function setup() {
     const input = readline.createInterface({
         input: buffer, terminal: false });
 
+    buffer.put(sample || "");
+    buffer.stop();
+
     return {buffer, input}
 }
 
 // Transformation Tests
-describe('AST Streaming', () => {
-    it('should accept a streaming buffer', async () => {
-        const stream = setup()
-        stream.buffer.stop();
+describe('AST Streaming', async () => {
 
-        let ast = await gen_ast(stream.input);
+    it('should accept a streaming buffer', async () => {
+        let ast = await gen_ast(setup().input);
+
         expect(ast).to.have.property('index')
         expect(ast).to.have.property('comments')
         expect(ast).to.have.property('code')
@@ -58,36 +60,21 @@ describe('AST Streaming', () => {
 
 });
 
-describe('AST Functions', () => {
-    it('handle function code points', async () => {
-        const stream = setup()
+describe('AST Functions', async () => {
+    const sample = gen_ast(setup(samples.FUNC).input);
 
-        stream.buffer.put(samples.FUNCTION);
-        stream.buffer.stop();
-
-        let ast = await gen_ast(stream.input);
-        log.hi(ast);
+    it('should handle function code points', async() => {
+        const ast = await sample;
 
         expect(ast.comments.present().length).to.equal(1);
         expect(ast.code.present().length).to.equal(1);
-
-        log.hi(`sources: ${ast.source.length}`);
-        log.hi(`index: ${ast.index.length}`);
-
-        expect(ast.index.length).to.equal(ast.source.length);
-        expect(ast.index[7].node_id).to.equal(1);
     });
 
-    // it('handle comment entries on struct', async () => {
-    //     const stream = setup()
+    it('should have valid indexes', async () => {
+        const ast = await sample;
 
-    //     stream.buffer.put(samples.STRUCT);
-    //     stream.buffer.stop();
-
-    //     let ast = await gen_ast(stream.input);
-    //     console.log(ast);
-
-    //     expect(ast.comments.present().length).to.equal(1)
-    // });
+        expect(ast.index.length).to.equal(ast.source.length);
+        expect(ast.index[7].node_id).to.equal(4);
+    });
 
 });

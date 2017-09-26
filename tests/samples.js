@@ -1,5 +1,5 @@
 
-const FUNCTION =
+const FUNC =
 `/**
  * nk_window_get_size() descriptive comment
  */
@@ -23,7 +23,7 @@ NK_API struct nk_rect
 
 const SAMPLES = {
     STRUCT,
-    FUNCTION
+    FUNC
 };
 
 export default SAMPLES;
