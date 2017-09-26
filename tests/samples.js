@@ -1,6 +1,6 @@
 
-const FUNCTION = `
-/**
+const FUNCTION =
+`/**
  * nk_window_get_size() descriptive comment
  */
 NK_API struct nk_rect
@@ -10,8 +10,8 @@ nk_window_get_size(const struct nk_context *ctx)
   int i = 0;
 }
 `
-const STRUCT = `
-/**
+const STRUCT =
+`/**
  * nk_rect descriptive comment
  */
 NK_API struct nk_rect

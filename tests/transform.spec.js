@@ -66,12 +66,16 @@ describe('AST Functions', () => {
         stream.buffer.stop();
 
         let ast = await gen_ast(stream.input);
-        console.log(ast.code);
+        log.hi(ast);
 
-        expect(ast.comments.present().length).to.equal(1)
-        expect(ast.code.present().length).to.equal(1)
-        log.hi(ast.index);
-        expect(ast.index[7]).to.equal(1)
+        expect(ast.comments.present().length).to.equal(1);
+        expect(ast.code.present().length).to.equal(1);
+
+        log.hi(`sources: ${ast.source.length}`);
+        log.hi(`index: ${ast.index.length}`);
+
+        expect(ast.index.length).to.equal(ast.source.length);
+        expect(ast.index[7].node_id).to.equal(1);
     });
 
     // it('handle comment entries on struct', async () => {

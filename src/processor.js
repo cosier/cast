@@ -13,6 +13,12 @@ import readline from 'readline';
 import {logger} from './utils';
 import {resolve} from 'path';
 
+const CHAR = "char";
+const COMM = "comm";
+const CODE = "code";
+const DEF = "def";
+const NA = "na";
+
 /**
  * Precompild Regex selectors for function tokens
  */
@@ -20,13 +26,26 @@ const REGEX = {
     // C type function declaration
     c_fn_decl: /[aA0-zZ9_\s]+\(.*\)/,
     c_struct_decl: /struct[\s]+/,
-    c_enum_decl: /enum[\s]+/,
+    c_enum_decl: /enum[\s]+/
 }
 
 /**
  * Utility log namespaced helper
  */
 const log = logger('processor');
+
+function container_from_type(type) {
+    switch (type) {
+    case COMM:
+        return 'comments';
+
+    case DEF:
+        return 'defs';
+
+    case CODE:
+        return 'code';
+    }
+}
 
 /**
  * Create new textual node representation
@@ -69,9 +88,9 @@ function create_state() {
 
         // Runtime config
         config: {
-            comm: { ref: 'code', container: 'comments' },
-            code: { ref: 'comm', container: 'code' },
-            def: { ref: 'comm', container: 'defs' }
+            [COMM]: { ref: CODE, container: 'comments' },
+            [CODE]: { ref: COMM, container: 'code' },
+            [DEF]: { ref: COMM, container: 'defs' }
         }
     };
 }
@@ -144,8 +163,9 @@ function gen_ast(buffer) {
                 stack.push(line);
             } else {
                 // log("line data", line);
-                process_line(ast, state, line)
+                // process_line(ast, state, line)
             }
+            process_line(ast, state, line)
         });
 
         buffer.on('close', (fin) => {
@@ -168,6 +188,10 @@ function gen_ast(buffer) {
 function process_node(ast, state, line, type) {
     const ref_id = state[`prev_${state.config[type].ref}_ptr`];
     const index = state[`curr_${type}_ptr`];
+
+    if (!index) {
+        log.error(`Invalid index: ${line} // ${type}`);
+    }
 
     const container = state.config[type].container;
     let node = ast[container][index];
@@ -200,13 +224,20 @@ function process_line(ast, state, line, next_line) {
           state.inside.comm ||
           state.inside.def;
 
+    const inside_def = state.inside.def;
+
+    const prev_index = ast.index[state.line - 1];
+    const prev_line = prev_index && ast[container_from_type(prev_index.type)];
+
     if (ln.indexOf('#') == 0 || ln == '') {
-        ast.index[state.line] = { type: 'na' }
+        ast.index[state.line] = { type: NA }
+        ast.source[state.line] = line;
         state.line++;
         return;
     }
+
     // Detect tokens
-    if (!inside && ln.indexOf("/*") == 0) {
+    if (!inside && ln.indexOf("/**") >= 0) {
         state.inside.comm = true;
         state.curr_comm_ptr = state.line;
     }
@@ -218,16 +249,17 @@ function process_line(ast, state, line, next_line) {
 
     // Possible branching outside of block comment variant.
     else if (!state.inside.comm) {
-        log.hi(ln);
 
-        if(ln.indexOf("//") == 0) {
+        if (!state.inside.code  && ln.indexOf("//") == 0) {
             closing_comment = true;
             state.curr_comm_ptr = state.line;
         }
 
-        else if (ln.match(REGEX.c_struct_decl) ||
-                 ln.match(REGEX.c_enum_decl)) {
+        else if (!inside_def &&
+                 (ln.match(REGEX.c_struct_decl) ||
+                  ln.match(REGEX.c_enum_decl))) {
             state.inside.def = true;
+            state.curr_def_ptr = state.line;
 
             // Bump code depth automatically depending on brace style
             if (ln.indexOf("{") >= 0) {
@@ -237,11 +269,10 @@ function process_line(ast, state, line, next_line) {
 
         else if (ln.match(REGEX.c_fn_decl)) {
             state.curr_code_ptr = state.line;
-            log.hi("found a function");
 
             // Handle one line declarations
             if (ln.indexOf(';') >= 0) {
-                log.hi("closing code: " + ln);
+                // log.hi("closing code: " + ln);
                 closing_code = true;
             } else {
                 state.inside.code = true;
@@ -251,8 +282,12 @@ function process_line(ast, state, line, next_line) {
             if (ln.indexOf("{") >= 0) {
                 state.depth = 1;
             }
-        } else {
-            log(state.line + 1, ln);
+        } else if (!inside) {
+            // log(state.line + 1, ln);
+            ast.index[state.line] = { node_id: state.line, type: CHAR }
+            ast.source[state.line] = line;
+            state.line++;
+            return;
         }
     }
 
@@ -262,17 +297,21 @@ function process_line(ast, state, line, next_line) {
     const scope_delta =  (scope_close - scope_open) - state.depth;
 
     if (state.inside.code || state.inside.def) {
-        // Close the scope
+        // Close the scope if ; or } is present for struct / func respectively
         if (scope_delta == 0) {
             state.depth = 0;
+            log.error("hello");
 
             // Handle definition before code points for nesting realization
             if (state.inside.def) {
-                state.inside.def = false;
-                closing_def = true;
+                if (ln.indexOf(';') >= 1) {
+                    log.error("closing def");
+                    state.inside.def = false;
+                    closing_def = true;
+                }
             }
 
-            else if (state.inside.code) {
+            else if (state.inside.code && ln.indexOf('}') >= 0) {
                 state.inside.code = false;
                 closing_code = true;
             }
@@ -283,16 +322,23 @@ function process_line(ast, state, line, next_line) {
         }
     }
 
+
     // Handle node insertions
     if (state.inside.comm || closing_comment) {
-        process_node(ast, state, line, 'comm');
+        process_node(ast, state, line, COMM);
     }
 
     else if (state.inside.code || closing_code) {
-        process_node(ast, state, line, 'code');
+        if (prev_index.type == DEF || prev_index.type == CHAR) {
+
+        }
+
+        process_node(ast, state, line, CODE);
     }
 
     else if (state.inside.def || closing_def) {
+        log.error(`state.inside.def: ${state.inside.def}`)
+        log.error(`closing_def: ${closing_def}`)
         process_node(ast, state, line, 'def');
     }
 
