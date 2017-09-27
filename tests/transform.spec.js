@@ -79,10 +79,23 @@ describe('AST Functions', async () => {
     expect(ast.index[7].node_id).to.equal(3);
   });
 
+  // Should backtrace the previous def into a code point,
+  // This happens due to CHAR(s) on lines before a code point.
   it('should handle back tracing transforms', async () => {
-    // Should backtrace the previous def into a code point,
-    // This happens due to CHAR(s) on lines before a code point.
     expect(ast.index[3].type).to.equal("code");
+  });
+
+});
+
+describe('AST Structures', async () => {
+  let ast;
+
+  before(async () => {
+    ast = await gen_ast(setup(samples.STRUCT).input);
+  })
+
+  it('should handle function structs', async() => {
+    expect(ast.comments.present().length).to.equal(2);
   });
 
 });
