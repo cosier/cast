@@ -28,53 +28,63 @@ import samples from './samples';
 const log = logger('spec');
 
 /**
-* Sets up a streaming buffer reader for test harnessing
-* @return {Buffer, Reader}
-*/
+ * Sets up a streaming buffer reader for test harnessing
+ * @return {Buffer, Reader}
+ */
 function setup(sample) {
-    const buffer = new streamBuffers.ReadableStreamBuffer({
-	      frequency: 10,   // in milliseconds.
-	      chunkSize: 32 * 2048  // in bytes.
-    });
+  const buffer = new streamBuffers.ReadableStreamBuffer({
+    frequency: 10,   // in milliseconds.
+    chunkSize: 32 * 2048  // in bytes.
+  });
 
-    const input = readline.createInterface({
-        input: buffer, terminal: false });
+  const input = readline.createInterface({
+    input: buffer, terminal: false });
 
-    buffer.put(sample || "");
-    buffer.stop();
+  buffer.put(sample || "");
+  buffer.stop();
 
-    return {buffer, input}
+  return {buffer, input}
 }
 
-// Transformation Tests
+/**
+ * Transformation Tests
+ */
 describe('AST Streaming', async () => {
 
-    it('should accept a streaming buffer', async () => {
-        let ast = await gen_ast(setup().input);
+  it('should accept a streaming buffer', async () => {
+    let ast = await gen_ast(setup().input);
 
-        expect(ast).to.have.property('index')
-        expect(ast).to.have.property('comments')
-        expect(ast).to.have.property('code')
-        expect(ast).to.have.property('source')
-    });
+    expect(ast).to.have.property('index')
+    expect(ast).to.have.property('comments')
+    expect(ast).to.have.property('code')
+    expect(ast).to.have.property('source')
+  });
 
 });
 
 describe('AST Functions', async () => {
-    const sample = gen_ast(setup(samples.FUNC).input);
+  const sample = gen_ast(setup(samples.FUNC).input);
 
-    it('should handle function code points', async() => {
-        const ast = await sample;
+  it('should handle function code points', async() => {
+    const ast = await sample;
+    log.hi(ast);
 
-        expect(ast.comments.present().length).to.equal(1);
-        expect(ast.code.present().length).to.equal(1);
-    });
+    // expect(ast.comments.present().length).to.equal(1);
+    expect(ast.code.present().length).to.equal(1);
+  });
 
-    it('should have valid indexes', async () => {
-        const ast = await sample;
+  it('should have valid indexes', async () => {
+    const ast = await sample;
 
-        expect(ast.index.length).to.equal(ast.source.length);
-        expect(ast.index[7].node_id).to.equal(4);
-    });
+    expect(ast.index.length).to.equal(ast.source.length);
+    expect(ast.index[7].node_id).to.equal(3);
+  });
+
+  it('should handle back tracing transforms', async () => {
+    const ast = await sample;
+    // Should backtrace the previous def into a code point,
+    // This happens due to CHAR(s) on lines before a code point.
+    expect(ast.index[3].type).to.equal("code");
+  });
 
 });
