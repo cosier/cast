@@ -63,25 +63,23 @@ describe('AST Streaming', async () => {
 });
 
 describe('AST Functions', async () => {
-  const sample = gen_ast(setup(samples.FUNC).input);
+  let ast;
+
+  before(async () => {
+    ast = await gen_ast(setup(samples.FUNC).input);
+  })
 
   it('should handle function code points', async() => {
-    const ast = await sample;
-    log.hi(ast);
-
-    // expect(ast.comments.present().length).to.equal(1);
+    expect(ast.comments.present().length).to.equal(1);
     expect(ast.code.present().length).to.equal(1);
   });
 
   it('should have valid indexes', async () => {
-    const ast = await sample;
-
     expect(ast.index.length).to.equal(ast.source.length);
     expect(ast.index[7].node_id).to.equal(3);
   });
 
   it('should handle back tracing transforms', async () => {
-    const ast = await sample;
     // Should backtrace the previous def into a code point,
     // This happens due to CHAR(s) on lines before a code point.
     expect(ast.index[3].type).to.equal("code");

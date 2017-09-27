@@ -461,13 +461,11 @@ function combine_nodes(ast, no1, no2) {
     n2 = no1;
   }
 
-  log.hi(n1, n2);
-
   // Update index shift to adjacent id
   const segment = n2.data.length;
 
   for (let i = n2.id; i < (n2.id + segment); i++) {
-    log.hi(`shifting index segment(${segment}): n2(${n2.id})/${i} = ${n1.id}`)
+    // log.hi(`shifting index segment(${segment}): n2(${n2.id})/${i} = ${n1.id}`)
     ast.index[i].node_id = n1.id;
   }
 
@@ -479,7 +477,7 @@ function combine_nodes(ast, no1, no2) {
   const container = container_from_type(n2.type);
   if (ast[container][n2.id]) {
     let existing = ast[container][n2.id];
-    log.error(`deleting container[${container}][${n2.id}]`, existing)
+    // log.error(`deleting container[${container}][${n2.id}]`, existing)
     ast[container][n2.id] = null;
   } else {
     log.error(`Could not find node inside [${n2.node_type}]`)

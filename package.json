@@ -83,9 +83,9 @@
             }
         },
         "test": {
-            "command": "$NODE $(npm bin)/$RUNNER $CONFIG $OPTS $GLOB $TEST_DIR",
+            "command": "$NODE $BRK $(npm bin)/$RUNNER $CONFIG $OPTS $GLOB $TEST_DIR",
             "env": {
-                "NODE": "node --inspect-brk=0.0.0.0:9000",
+                "NODE": "node --inspect=0.0.0.0:9000",
                 "RUNNER": "mocha-webpack",
                 "CONFIG": "--webpack-config build/webpack.config.test.js",
                 "OPTS": "-R nyan --watch --glob",
@@ -97,7 +97,7 @@
         "test:debug": {
             "command": "better-npm-run test",
             "env": {
-                "NODE": "node --inspect-brk=0.0.0.0:9000"
+                "BRK": "--inspect-brk"
             }
         },
         "lint": {
