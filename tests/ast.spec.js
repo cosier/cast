@@ -119,14 +119,12 @@ describe('AST Structures', async () => {
   it('should handle inner members', async() => {
     const lookup = ast.index[5];
     const def_node = ast.node(3);
-    const inner_node = ast.node(5);
-
-    log.grn(ast);
-    // log.pink(inner_node);
+    const comm_node = ast.node(5);
+    const inner_node = ast.node(7);
 
     expect(lookup.type).to.equal('comments')
-  //   expect(inner_node.assocs).to.have.property('defs');
-  //   expect(inner_node.assocs.defs[0]).to.equal(def_node.id);
+    expect(inner_node.assocs).to.have.property('comments');
+    expect(inner_node.assocs.comments[0]).to.equal(comm_node.id);
   });
 
 });

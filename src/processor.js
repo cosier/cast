@@ -16,7 +16,7 @@ import {resolve} from 'path';
 const CHAR = "char";
 const COMM = "comments";
 const CODE = "code";
-const MEMB = "member";
+const MEMB = "members";
 const DEF = "defs";
 const NA = "na";
 
@@ -321,7 +321,6 @@ function process_node(ast, state, type) {
     if (!pnode.mindex) { pnode.mindex = {} };
 
     pnode.mindex[parseInt(state.lno)] = node.id;
-    log.error(pnode.mindex[6])
 
   } else {
     container = state.config[type].container;
