@@ -17,6 +17,7 @@ const STRUCT =
 NK_API struct nk_rect
 {
     // internal struct comment
+    // which may span several lines.
     float x,y,w,h;
 }
 `

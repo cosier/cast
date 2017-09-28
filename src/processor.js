@@ -102,6 +102,8 @@ function container_from_type(type) {
   case CODE:
     return 'code';
   }
+
+  return type;
 }
 
 /**
@@ -127,6 +129,26 @@ function create_node(id, {node_type, assoc_type, assoc_id}) {
     assocs: assoc_container,
     data: []
   };
+}
+
+/**
+ * Perform a cached lookup for an indexed Node.
+ * If requested node is non-existent, it will be created.
+ * @param ast {object} AST tree
+ * @param index {number} ID Index for the node, typically line no.
+ * @param container {string} container object.
+ *
+ * @return {object} AST Node
+ */
+function cached_node(ast, index, container, opts) {
+  let node = ast[container][index];
+
+  if (!node) {
+    node = create_node(index, opts);
+    ast[container][index] = node;
+  }
+
+  return node;
 }
 
 /**
@@ -161,24 +183,33 @@ function create_state() {
 function create_ast_struct() {
   const ast = {
     source: [],
-    comments: [],
-    code: [],
-    defs: [],
+    comments: {},
+    code: {},
+    defs: {},
+    members: {},
     index: []
   }
 
-  const presence = function(src) {
-    let accumulator = [];
-    for (let i = 0; i < src.length; i++) {
-      let c = src[i];
+  ast.present = (container) => {
+    const box = ast[container];
+    const accumulator = [];
+
+    if (!box) {
+      log.error(`invalid container: ${container}`);
+      return [];
+    }
+
+    for (let i = 0; i < box.length; i++) {
+      let c = box[i];
       if (c) { accumulator.push(c) };
     }
+
     return accumulator;
   }
 
-  ast.code.present = () => (presence(ast.code))
-  ast.defs.present = () => (presence(ast.defs))
-  ast.comments.present = () => (presence(ast.comments))
+  ast.keys = (container) => {
+    return Object.keys(ast[container]);
+  }
 
   ast.node = (id) => {
     const container = container_from_type(ast.index[id].type);
@@ -274,28 +305,35 @@ function process_node(ast, state, type) {
   const ref_type = state.config[type].ref;
   const ref_id = state.previous[ref_type];
   const index = state.current[type];
+  const index_data = { node_id: index, type: type };
 
-  if (!index && index != 0) {
-    log.error(`Invalid index(${type}): ${state.current_line} // ${type}`);
-  }
+  let container;
+  let node;
 
-  const container = state.config[type].container;
-  let node = ast[container][index];
+  if (type == MEMB) {
+    const pnode = ast.node(state.current[DEF]);
+    index_data.parent = pnode.id;
 
-  if (!node) {
-    node = create_node(index, {
+    node = create_node(state.lno,
+                       { node_type: MEMB });
+    ast.members[node.id] = node;
+
+    if (!pnode.mindex) { pnode.mindex = {} };
+
+    pnode.mindex[parseInt(state.lno)] = node.id;
+    log.error(pnode.mindex[6])
+
+  } else {
+    container = state.config[type].container;
+    node = cached_node(ast, index, container, {
       node_type: type,
       assoc_type: ref_type,
       assoc_id: ref_id
     });
-
-    ast[container][index] = node;
   }
 
-  // Manage an index for lookback searching
-  ast.index[state.lno] = { node_id: index, type: type }
-
   node.data.push(state.current_line);
+  ast.index[state.lno] = index_data;
   return node;
 }
 
@@ -359,6 +397,7 @@ function tokenizer(ast, state) {
       if (state.ln.indexOf("{") >= 0) {
         state.depth = 1;
       }
+
     } else if (!inside) {
       // log(state.lno + 1, ln);
       ast.index[state.lno] = { node_id: state.lno, type: CHAR }
@@ -443,7 +482,7 @@ function insert_node(ast, state) {
   const prev_index = ast.index[state.lno - 1];
   const prev_line = prev_index && ast.source[state.lno - 1];
 
-  if (state.inside[COMM] || state.closing[COMM]) {
+  if (!state.inside[DEF] && (state.inside[COMM] || state.closing[COMM])) {
     state.node = process_node(ast, state, COMM);
   }
 
@@ -459,10 +498,26 @@ function insert_node(ast, state) {
   }
 
   else if (state.inside[DEF] || state.closing[DEF]) {
-    if (!state.closing[DEF] && !state.block_start) {
-        state.node = process_node(ast, state, MEMB);
-    } else {
-        state.node = process_node(ast, state, DEF);
+    // Combine internal comments
+    if (!state.closing[DEF] && state.ln.indexOf("//") == 0) {
+      state.node = process_node(ast, state, COMM);
+
+      if (prev_index && prev_index.type == COMM) {
+        combine_nodes(ast, ast[COMM][prev_index.node_id], state.node);
+      }
+    }
+
+    // Look for internal struct members
+    else if (!state.closing[DEF] && !state.block_start &&
+        state.ln.length > 1)
+    {
+      state.current[MEMB] = state.lno;
+      state.node = process_node(ast, state, MEMB);
+      state.current[MEMB] = null;
+    }
+
+    else {
+      state.node = process_node(ast, state, DEF);
     }
   }
 
@@ -535,7 +590,7 @@ function combine_nodes(ast, no1, no2) {
   const container = container_from_type(n2.type);
   if (ast[container][n2.id]) {
     let existing = ast[container][n2.id];
-    ast[container][n2.id] = null;
+    delete ast[container][n2.id];
   } else {
     log.error(`Could not find node inside [${n2.node_type}]`)
   }
@@ -552,7 +607,10 @@ function combine_nodes(ast, no1, no2) {
  */
 function find_common_precedence(ast, state, node) {
   let match, container;
-  if (node.type == CODE || node.type == CHAR || node.type == DEF) {
+  if (node.type == CODE ||
+      node.type == CHAR ||
+      node.type == DEF ||
+      node.type == MEMB) {
     let prev_comm_id = ast.index[node.id - 1].node_id
     let lookup = ast.index[prev_comm_id];
 
@@ -591,8 +649,6 @@ function associate_nodes(ast, node, related) {
   if (ncontains < 0) {
     node.assocs[ntype].push(related.id)
   }
-
-  // related.assocs.defs = [];
 }
 
 /**

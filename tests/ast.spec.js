@@ -9,7 +9,6 @@
 
 
 import {expect} from 'chai';
-import {gen_ast} from '../src/processor';
 import readline from 'readline';
 import fs from 'fs';
 
@@ -21,6 +20,11 @@ import streamBuffers from 'stream-buffers';
 
 import {logger} from '../src/utils';
 import samples from './samples';
+
+import {
+  COMM, CODE, CHAR, DEF, MEMB, NA,
+  gen_ast} from '../src/processor';
+
 
 /**
  * Utility log namespaced helper
@@ -70,8 +74,8 @@ describe('AST Functions', async () => {
   })
 
   it('should handle function code points', async() => {
-    expect(ast.comments.present().length).to.equal(1);
-    expect(ast.code.present().length).to.equal(1);
+    expect(ast.keys(COMM).length).to.equal(1);
+    expect(ast.keys(CODE).length).to.equal(1);
   });
 
   it('should have valid indexes', async () => {
@@ -97,7 +101,8 @@ describe('AST Structures', async () => {
   })
 
   it('should handle function structs', async() => {
-    expect(ast.comments.present().length).to.equal(2);
+    expect(ast.keys(DEF).length).to.equal(1);
+    expect(ast.keys(COMM).length).to.equal(2);
   });
 
   it('should associate comments to def members', async() => {
@@ -113,11 +118,10 @@ describe('AST Structures', async () => {
 
   it('should handle inner members', async() => {
     const lookup = ast.index[5];
-
     const def_node = ast.node(3);
     const inner_node = ast.node(5);
 
-    // log.grn(ast);
+    log.grn(ast);
     // log.pink(inner_node);
 
     expect(lookup.type).to.equal('comments')
