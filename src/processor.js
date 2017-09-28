@@ -14,9 +14,9 @@ import {logger} from './utils';
 import {resolve} from 'path';
 
 const CHAR = "char";
-const COMM = "comm";
+const COMM = "comments";
 const CODE = "code";
-const DEF = "def";
+const DEF = "defs";
 const NA = "na";
 
 /**
@@ -91,13 +91,13 @@ function create_state() {
     // Scope presence tracking struct
     inside: { comm: false, code: false, def: false },
 
-    prev_comm_ptr: null,
+    prev_comments_ptr: null,
     prev_code_ptr: null,
-    prev_def_ptr: null,
+    prev_defs_ptr: null,
 
-    curr_comm_ptr: null,
+    curr_comments_ptr: null,
     curr_code_ptr: null,
-    curr_def_ptr: null,
+    curr_defs_ptr: null,
 
     // Scope depth tracking
     depth: 0,
@@ -137,6 +137,11 @@ function create_ast_struct() {
   ast.code.present = () => (presence(ast.code))
   ast.defs.present = () => (presence(ast.defs))
   ast.comments.present = () => (presence(ast.comments))
+
+  ast.node = (id) => {
+    const container = container_from_type(ast.index[id].type);
+    return ast[container][id];
+  }
 
   return ast;
 }
@@ -211,8 +216,8 @@ function process_node(ast, state, line, type) {
   const ref_id = state[`prev_${ref_type}_ptr`];
   const index = state[`curr_${type}_ptr`];
 
-  if (!index) {
-    log.error(`Invalid index: ${line} // ${type}`);
+  if (!index && index != 0) {
+    log.error(`Invalid index(${type}): ${line} // ${type}`);
   }
 
   const container = state.config[type].container;
@@ -252,6 +257,13 @@ function process_line(ast, state, line, next_line) {
         state.inside.comm ||
         state.inside.def;
 
+  // Detect closing scope depths
+  const scope_open = (ln.match(/{/g) || []).length;
+  const scope_close = (ln.match(/}/g) || []).length;
+  const scope_delta =  (scope_close - scope_open) - state.depth;
+
+  let block_start = false;
+
   const inside_def = state.inside.def;
 
   const prev_index = ast.index[state.line - 1];
@@ -267,7 +279,8 @@ function process_line(ast, state, line, next_line) {
   // Detect tokens
   if (!inside && ln.indexOf("/**") >= 0) {
     state.inside.comm = true;
-    state.curr_comm_ptr = state.line;
+    state.curr_comments_ptr = state.line;
+    block_start = true;
   }
 
   else if (ln.indexOf("*/") >= 0) {
@@ -280,14 +293,16 @@ function process_line(ast, state, line, next_line) {
 
     if (!state.inside.code  && ln.indexOf("//") == 0) {
       closing_comment = true;
-      state.curr_comm_ptr = state.line;
+      state.curr_comments_ptr = state.line;
+      block_start = true;
     }
 
     else if (!inside_def &&
              (ln.match(REGEX.c_struct_decl) ||
               ln.match(REGEX.c_enum_decl))) {
       state.inside.def = true;
-      state.curr_def_ptr = state.line;
+      state.curr_defs_ptr = state.line;
+      block_start = true;
 
       // Bump code depth automatically depending on brace style
       if (ln.indexOf("{") >= 0) {
@@ -300,10 +315,10 @@ function process_line(ast, state, line, next_line) {
 
       // Handle one line declarations
       if (ln.indexOf(';') >= 0) {
-        // log.hi("closing code: " + ln);
         closing_code = true;
       } else {
         state.inside.code = true;
+        block_start = true;
       }
 
       // Bump code depth automatically depending on brace style
@@ -318,11 +333,6 @@ function process_line(ast, state, line, next_line) {
       return;
     }
   }
-
-  // Detect closing scope depths
-  const scope_open = (ln.match(/{/g) || []).length;
-  const scope_close = (ln.match(/}/g) || []).length;
-  const scope_delta =  (scope_close - scope_open) - state.depth;
 
   if (state.inside.code || state.inside.def) {
     // Close the scope if ; or } is present for struct / func respectively
@@ -349,14 +359,15 @@ function process_line(ast, state, line, next_line) {
     }
   }
 
+  let node;
 
   // Handle node insertions
   if (state.inside.comm || closing_comment) {
-    process_node(ast, state, line, COMM);
+    node = process_node(ast, state, line, COMM);
   }
 
   else if (state.inside.code || closing_code) {
-    const node = process_node(ast, state, line, CODE);
+    node = process_node(ast, state, line, CODE);
 
     if (prev_index && prev_index.type == DEF || prev_index.type == CHAR) {
       transform_node(ast, prev_index.node_id, prev_index.type, CODE);
@@ -367,7 +378,7 @@ function process_line(ast, state, line, next_line) {
   }
 
   else if (state.inside.def || closing_def) {
-    process_node(ast, state, line, 'def');
+    node = process_node(ast, state, line, DEF);
   }
 
   else {
@@ -375,10 +386,18 @@ function process_line(ast, state, line, next_line) {
               { no: state.line + 1, line});
   }
 
+  // Create associations
+  if (block_start) {
+    let related = find_common_precedence(ast, state, node);
+    if (related) {
+      associate_nodes(ast, node, related);
+    }
+  }
+
   // Scope cleanup
   if (closing_def) {
-    state.prev_def_ptr = state.curr_def_ptr;
-    state.curr_def_ptr = null;
+    state.prev_defs_ptr = state.curr_defs_ptr;
+    state.curr_defs_ptr = null;
   }
 
   if (closing_code) {
@@ -387,8 +406,8 @@ function process_line(ast, state, line, next_line) {
   }
 
   if (closing_comment) {
-    state.prev_comm_ptr = state.curr_comm_ptr;
-    state.curr_comm_ptr = null;
+    state.prev_comments_ptr = state.curr_comments_ptr;
+    state.curr_comments_ptr = null;
   }
 
   // Record prestine data
@@ -465,7 +484,6 @@ function combine_nodes(ast, no1, no2) {
   const segment = n2.data.length;
 
   for (let i = n2.id; i < (n2.id + segment); i++) {
-    // log.hi(`shifting index segment(${segment}): n2(${n2.id})/${i} = ${n1.id}`)
     ast.index[i].node_id = n1.id;
   }
 
@@ -477,7 +495,6 @@ function combine_nodes(ast, no1, no2) {
   const container = container_from_type(n2.type);
   if (ast[container][n2.id]) {
     let existing = ast[container][n2.id];
-    // log.error(`deleting container[${container}][${n2.id}]`, existing)
     ast[container][n2.id] = null;
   } else {
     log.error(`Could not find node inside [${n2.node_type}]`)
@@ -485,23 +502,70 @@ function combine_nodes(ast, no1, no2) {
 }
 
 /**
- *  Handles input into output.
- *  If output is not provided, stdout is used.
+ * Finds related nodes preceding the target node for association.
+ *
+ * @param ast {object} AST Tree to operate on
+ * @param state {object} Parser State
+ * @param node {object} AST Node object
+ *
+ * @return match {object} Matched AST node
+ */
+function find_common_precedence(ast, state, node) {
+  let match, container;
+  if (node.type == CODE || node.type == CHAR || node.type == DEF) {
+    let prev_comm_id = ast.index[node.id - 1].node_id
+    let lookup = ast.index[prev_comm_id];
+
+    if (lookup && lookup.type == COMM) {
+      container = container_from_type(lookup.type)
+      match = ast[container][lookup.node_id];
+    }
+  }
+
+  return match
+}
+
+/**
+* Link two nodes together via recipricol association.
+*
+* @param ast {object} AST Tree to operate on
+* @param node {object} AST Node object
+* @param related {object} AST Node object
+*
+* @return {void}
+*/
+function associate_nodes(ast, node, related) {
+  const ntype = container_from_type(related.type);
+  const rtype = container_from_type(node.type);
+
+  if (!node.assocs[ntype]) node.assocs[ntype] = [];
+  if (!related.assocs[rtype]) related.assocs[rtype] = [];
+
+  const rcontains = related.assocs[rtype].indexOf(node.id);
+  const ncontains = node.assocs[ntype].indexOf(related.id);
+
+  if (rcontains < 0) {
+    related.assocs[rtype].push(node.id);
+  }
+
+  if (ncontains < 0) {
+    node.assocs[ntype].push(related.id)
+  }
+
+  // related.assocs.defs = [];
+}
+
+/**
+ *  Transforms input into AST redirected to stdout.
  *
  * @return {boolean} operation success flag
  **/
-async function doctor(input, output) {
+async function doctor(input) {
   let opath = null;
   let stdout = false;
   let success = false;
 
   const ipath = resolve(input);
-
-  if (output) {
-    opath = resolve(output);
-  } else {
-    stdout = true;
-  }
 
   if (!exists(ipath)) {
     log.error(`Invalid input file: ${input}`);
@@ -509,14 +573,6 @@ async function doctor(input, output) {
   }
 
   const result = await process_ast(ipath);
-
-  if (stdout) {
-    // console.log("[doctor] processed: " + result);
-    success = true;
-  } else if (result) {
-    success = printf(opath, result)
-  }
-
   return success;
 }
 

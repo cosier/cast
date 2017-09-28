@@ -98,4 +98,16 @@ describe('AST Structures', async () => {
     expect(ast.comments.present().length).to.equal(2);
   });
 
+  it('should associate comments to def members', async() => {
+    // log.hi(ast);
+    const comm_node = ast.node(0);
+    const def_node = ast.node(3);
+
+    expect(comm_node.assocs).to.have.property('defs');
+    expect(def_node.assocs).to.have.property('comments');
+
+    expect(comm_node.assocs.defs[0]).to.equal(def_node.id);
+    expect(def_node.assocs.comments[0]).to.equal(comm_node.id);
+  });
+
 });
