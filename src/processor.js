@@ -16,6 +16,7 @@ import {resolve} from 'path';
 const CHAR = "char";
 const COMM = "comments";
 const CODE = "code";
+const MEMB = "member";
 const DEF = "defs";
 const NA = "na";
 
@@ -67,18 +68,17 @@ function container_from_type(type) {
  */
 function create_node(id, {node_type, assoc_type, assoc_id}) {
   // Prepare initial association references
-  const assocs = [];
+  let assoc_container = {_id: id, _type: node_type};
+
   if (assoc_id) {
-    assocs.push(assoc_id);
+    assoc_container[assoc_type] = [assoc_id]
   }
 
   return {
     id: id,
     type: node_type,
-    data: [],
-    assocs: {
-      [assoc_type]: assocs
-    }
+    assocs: assoc_container,
+    data: []
   };
 }
 
@@ -91,13 +91,8 @@ function create_state() {
     // Scope presence tracking struct
     inside: { comm: false, code: false, def: false },
 
-    prev_comments_ptr: null,
-    prev_code_ptr: null,
-    prev_defs_ptr: null,
-
-    curr_comments_ptr: null,
-    curr_code_ptr: null,
-    curr_defs_ptr: null,
+    current: {},
+    previous: {},
 
     // Scope depth tracking
     depth: 0,
@@ -213,8 +208,8 @@ function gen_ast(buffer) {
  */
 function process_node(ast, state, line, type) {
   const ref_type = state.config[type].ref;
-  const ref_id = state[`prev_${ref_type}_ptr`];
-  const index = state[`curr_${type}_ptr`];
+  const ref_id = state.previous[ref_type];
+  const index = state.current[type];
 
   if (!index && index != 0) {
     log.error(`Invalid index(${type}): ${line} // ${type}`);
@@ -279,7 +274,7 @@ function process_line(ast, state, line, next_line) {
   // Detect tokens
   if (!inside && ln.indexOf("/**") >= 0) {
     state.inside.comm = true;
-    state.curr_comments_ptr = state.line;
+    state.current[COMM] = state.line;
     block_start = true;
   }
 
@@ -293,7 +288,7 @@ function process_line(ast, state, line, next_line) {
 
     if (!state.inside.code  && ln.indexOf("//") == 0) {
       closing_comment = true;
-      state.curr_comments_ptr = state.line;
+      state.current[COMM] = state.line;
       block_start = true;
     }
 
@@ -301,7 +296,7 @@ function process_line(ast, state, line, next_line) {
              (ln.match(REGEX.c_struct_decl) ||
               ln.match(REGEX.c_enum_decl))) {
       state.inside.def = true;
-      state.curr_defs_ptr = state.line;
+      state.current[DEF] = state.line;
       block_start = true;
 
       // Bump code depth automatically depending on brace style
@@ -311,7 +306,7 @@ function process_line(ast, state, line, next_line) {
     }
 
     else if (ln.match(REGEX.c_fn_decl)) {
-      state.curr_code_ptr = state.line;
+      state.current[CODE] = state.line;
 
       // Handle one line declarations
       if (ln.indexOf(';') >= 0) {
@@ -372,8 +367,8 @@ function process_line(ast, state, line, next_line) {
     if (prev_index && prev_index.type == DEF || prev_index.type == CHAR) {
       transform_node(ast, prev_index.node_id, prev_index.type, CODE);
       combine_nodes(ast, ast.code[prev_index.node_id], ast.code[state.line]);
-      state.prev_code_ptr = null;
-      state.curr_code_ptr = prev_index.node_id;
+      state.previous[CODE] = null;
+      state.current[CODE] = prev_index.node_id;
     }
   }
 
@@ -387,7 +382,9 @@ function process_line(ast, state, line, next_line) {
   }
 
   // Create associations
-  if (block_start) {
+  if (block_start || state.inside[DEF]) {
+    log.pink(ln + " // " + node.type);
+
     let related = find_common_precedence(ast, state, node);
     if (related) {
       associate_nodes(ast, node, related);
@@ -396,18 +393,18 @@ function process_line(ast, state, line, next_line) {
 
   // Scope cleanup
   if (closing_def) {
-    state.prev_defs_ptr = state.curr_defs_ptr;
-    state.curr_defs_ptr = null;
+    state.previous[DEF] = state.current[DEF];
+    state.current[DEF] = null;
   }
 
   if (closing_code) {
-    state.prev_code_ptr = state.curr_code_ptr;
-    state.curr_code_ptr = null;
+    state.previous[CODE] = state.current[CODE];
+    state.current[CODE] = null;
   }
 
   if (closing_comment) {
-    state.prev_comments_ptr = state.curr_comments_ptr;
-    state.curr_comments_ptr = null;
+    state.previous[COMM] = state.current[COMM];
+    state.current[COMM] = null;
   }
 
   // Record prestine data

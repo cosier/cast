@@ -42,7 +42,7 @@ if (__DEV__) {
 
 webpackConfig.entry = {
     index: APP_ENTRY_PATHS,
-    tests: [paths.client('../tests/transform.spec.js')]
+    tests: [paths.client('../tests/ast.spec.js')]
 };
 
 // -------------------------------------------------------------------

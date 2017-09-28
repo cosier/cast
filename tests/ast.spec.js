@@ -1,8 +1,8 @@
 /**
  * @fileOverview
- * Tests for Transformation and AST generation
+ * Tests for AST Generation & Transformation
  *
- * @name transform.spec.js
+ * @name ast.spec.js
  * @author Bailey Cosier <bailey@cosier.ca
  * @license MIT
  */
@@ -79,8 +79,10 @@ describe('AST Functions', async () => {
     expect(ast.index[7].node_id).to.equal(3);
   });
 
-  // Should backtrace the previous def into a code point,
-  // This happens due to CHAR(s) on lines before a code point.
+  /**
+   * Should backtrace the previous def into a code point,
+   * This happens due to CHAR(s) on lines before a code point.
+   */
   it('should handle back tracing transforms', async () => {
     expect(ast.index[3].type).to.equal("code");
   });
@@ -99,7 +101,6 @@ describe('AST Structures', async () => {
   });
 
   it('should associate comments to def members', async() => {
-    // log.hi(ast);
     const comm_node = ast.node(0);
     const def_node = ast.node(3);
 
@@ -108,6 +109,20 @@ describe('AST Structures', async () => {
 
     expect(comm_node.assocs.defs[0]).to.equal(def_node.id);
     expect(def_node.assocs.comments[0]).to.equal(comm_node.id);
+  });
+
+  it('should handle inner members', async() => {
+    const lookup = ast.index[5];
+
+    const def_node = ast.node(3);
+    const inner_node = ast.node(5);
+
+    // log.grn(ast);
+    // log.pink(inner_node);
+
+    expect(lookup.type).to.equal('comments')
+  //   expect(inner_node.assocs).to.have.property('defs');
+  //   expect(inner_node.assocs.defs[0]).to.equal(def_node.id);
   });
 
 });
