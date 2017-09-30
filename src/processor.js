@@ -429,8 +429,8 @@ function scope_depths(ast, state) {
 
       // Handle definition before code points for nesting realization
       if (state.inside[DEF]) {
-        if (state.ln.indexOf(';') >= 1) {
-          log.error("closing def");
+        if (state.ln.indexOf(';') >= 1 ||
+            (state.ln.indexOf('}') >= 0 && scope_delta == 0)) {
           state.inside[DEF] = false;
           state.closing[DEF] = true;
         }

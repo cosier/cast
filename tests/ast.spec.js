@@ -128,3 +128,17 @@ describe('AST Structures', async () => {
   });
 
 });
+
+describe('AST Structs & Functions Combos', async () => {
+  let ast;
+
+  before(async () => {
+    ast = await gen_ast(setup(samples.STRUCT_FUNCS).input);
+  })
+
+  it('should parse CODE,DEF,COMM together', async() => {
+    expect(ast.keys(CODE).length).to.equal(1);
+    expect(ast.keys(DEF).length).to.equal(1);
+    expect(ast.keys(COMM).length).to.equal(3);
+  });
+});
