@@ -152,7 +152,6 @@ describe('Struct Declarations', async () => {
   })
 
   it('should parse a list of declarations', async() => {
-    log.h1(ast);
     // Only a few decls have a comment
     expect(ast.keys(COMM).length).to.equal(3);
 

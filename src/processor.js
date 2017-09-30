@@ -231,7 +231,6 @@ function create_association(ast, state) {
     let related = find_common_precedence(ast, state, state.node);
 
     if (related) {
-      log.cyan("association nodes", state.node, related)
       associate_nodes(ast, state.node, related);
     }
   }
@@ -573,12 +572,11 @@ function combine_nodes(ast, no1, no2) {
   const range = no1.id - no2.id;
   let n1, n2;
 
+  // Multiline blocks will run into this scenario.
   if (no1.id === no2.id) {
-    log.error(`Cannot combine identical nodes`)
+    //log.error(`Cannot combine identical nodes: ${no1.id}/${no2.id}`)
     //PANIC = true;
     return;
-  } else {
-    log.error(`${no1.id} != ${no2.id}`)
   }
 
   if (range != -1 && range != 1) {
