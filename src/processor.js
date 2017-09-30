@@ -231,6 +231,7 @@ function create_association(ast, state) {
     let related = find_common_precedence(ast, state, state.node);
 
     if (related) {
+      log.cyan("association nodes", state.node, related)
       associate_nodes(ast, state.node, related);
     }
   }
@@ -330,6 +331,9 @@ function process_node(ast, state, type) {
       assoc_id: ref_id
     });
   }
+
+  // Clear previous ref_type
+  state.previous[ref_type] = null;
 
   node.data.push(state.current_line);
   ast.index[state.lno] = index_data;
@@ -483,6 +487,15 @@ function insert_node(ast, state) {
 
   if (!state.inside[DEF] && (state.inside[COMM] || state.closing[COMM])) {
     state.node = process_node(ast, state, COMM);
+
+    if (prev_index && prev_index.type == COMM) {
+      let target = ast[COMM][prev_index.node_id];
+      //log.h2("combining", state.node, target)
+
+      combine_nodes(ast, target, state.node);
+
+    }
+
   }
 
   else if (state.inside[CODE] || state.closing[CODE]) {
@@ -560,10 +573,21 @@ function combine_nodes(ast, no1, no2) {
   const range = no1.id - no2.id;
   let n1, n2;
 
+  if (no1.id === no2.id) {
+    log.error(`Cannot combine identical nodes`)
+    //PANIC = true;
+    return;
+  } else {
+    log.error(`${no1.id} != ${no2.id}`)
+  }
+
   if (range != -1 && range != 1) {
-    log.error(`Invalid Node Range: ${range}`)
-    log.error(`Nodes must be adjacent to each other`)
-    PANIC = true;
+    //   log.error(`Invalid Node Range: ${range}`)
+    //   log.error(`Nodes must be adjacent to each other`)
+    //   PANIC = true;
+
+    // TODO: check range consistency for multiline comments,
+    // which appear not to be adjacent but indeedare.
   }
 
   if (no1.id < no2.id) {
@@ -610,6 +634,7 @@ function find_common_precedence(ast, state, node) {
       node.type == CHAR ||
       node.type == DEF ||
       node.type == MEMB) {
+
     let prev_comm_id = ast.index[node.id - 1].node_id
     let lookup = ast.index[prev_comm_id];
 

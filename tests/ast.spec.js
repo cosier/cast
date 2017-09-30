@@ -50,10 +50,8 @@ function setup(sample) {
   return {buffer, input}
 }
 
-/**
- * Transformation Tests
- */
-describe('AST Streaming', async () => {
+//////////////////////////////////////////////////////////////////////
+describe('Streaming Input', async () => {
 
   it('should accept a streaming buffer', async () => {
     let ast = await gen_ast(setup().input);
@@ -66,7 +64,8 @@ describe('AST Streaming', async () => {
 
 });
 
-describe('AST Functions', async () => {
+//////////////////////////////////////////////////////////////////////
+describe('Functions', async () => {
   let ast;
 
   before(async () => {
@@ -93,7 +92,8 @@ describe('AST Functions', async () => {
 
 });
 
-describe('AST Structures', async () => {
+//////////////////////////////////////////////////////////////////////
+describe('Structures', async () => {
   let ast;
 
   before(async () => {
@@ -126,10 +126,10 @@ describe('AST Structures', async () => {
     expect(inner_node.assocs).to.have.property('comments');
     expect(inner_node.assocs.comments[0]).to.equal(comm_node.id);
   });
-
 });
 
-describe('AST Structs & Functions Combos', async () => {
+//////////////////////////////////////////////////////////////////////
+describe('Structs & Functions Combos', async () => {
   let ast;
 
   before(async () => {
@@ -140,5 +140,30 @@ describe('AST Structs & Functions Combos', async () => {
     expect(ast.keys(CODE).length).to.equal(1);
     expect(ast.keys(DEF).length).to.equal(1);
     expect(ast.keys(COMM).length).to.equal(3);
+  });
+});
+
+//////////////////////////////////////////////////////////////////////
+describe('Struct Declarations', async () => {
+  let ast;
+
+  before(async () => {
+    ast = await gen_ast(setup(samples.STRUCT_DECLS).input);
+  })
+
+  it('should parse a list of declarations', async() => {
+    log.h1(ast);
+    // Only a few decls have a comment
+    expect(ast.keys(COMM).length).to.equal(3);
+
+    // We have 25 declarations
+    expect(ast.keys(DEF).length).to.equal(25);
+
+    expect(ast.node(16).assocs).to.have.property(COMM);
+    expect(ast.node(21).assocs).to.have.property(COMM);
+    expect(ast.node(27).assocs).to.have.property(COMM);
+
+    // The last node should not have any associations
+    expect(ast.node(32).assocs).to.not.have.property(COMM);
   });
 });
