@@ -158,11 +158,32 @@ describe('Struct Declarations', async () => {
     // We have 25 declarations
     expect(ast.keys(DEF).length).to.equal(25);
 
+    // These nodes do have comments of various types
     expect(ast.node(16).assocs).to.have.property(COMM);
     expect(ast.node(21).assocs).to.have.property(COMM);
     expect(ast.node(27).assocs).to.have.property(COMM);
 
+    // Check for recipricol comment associations
+    expect(ast.node(13).assocs[DEF][0]).to.equal(16);
+    expect(ast.node(20).assocs[DEF][0]).to.equal(21);
+    expect(ast.node(24).assocs[DEF][0]).to.equal(27);
+
     // The last node should not have any associations
     expect(ast.node(32).assocs).to.not.have.property(COMM);
   });
+});
+
+describe('Comment Associations', async () => {
+  let ast;
+
+  before(async () => {
+    ast = await gen_ast(setup(samples.COMM_SPACES).input);
+  })
+
+  it('should recognize independent comments', async() => {
+    log.h1(ast)
+    expect(ast.keys(COMM).length).to.equal(3)
+    expect(ast.node(8).assocs).to.not.have.property(COMM);
+  })
+
 });

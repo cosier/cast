@@ -62,8 +62,10 @@ function process_line(ast, state, line) {
 
   ///////////////////////////////////////////////
   // Ignore non-applicable lines
-  if (state.ln.indexOf('#') == 0 || state.ln == '') {
+  if (!state.inside[COMM] && (state.ln.indexOf('#') == 0 || state.ln == '')) {
     ast.index[state.lno] = { type: NA }
+    // Clear comment tracking as we have introduced an association break
+    state.previous[COMM] = null;
     return;
   }
 

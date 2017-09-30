@@ -82,11 +82,26 @@ struct nk_style_window_header;
 struct nk_style_window;
 `;
 
+const COMM_SPACES =
+`
+// A disconnected comment due to spacing
+
+// This comment is associateed with nk_style_chart
+struct nk_style_chart;
+
+// Additional independent comment.
+
+struct nk_style_combo;
+struct nk_style_tab;
+
+`
+
 const SAMPLES = {
   STRUCT_FUNCS,
   STRUCT_DECLS,
   STRUCT,
-  FUNC
+  FUNC,
+  COMM_SPACES
 };
 
 export default SAMPLES;
