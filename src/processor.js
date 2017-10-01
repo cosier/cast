@@ -261,19 +261,8 @@ function gen_ast(buffer) {
 
   // Asyncronously process our buffer into an AST
   const compute = new Promise((resolve, reject)=>{
-
-    // line stack
-    const stack = [];
-
     buffer.on('line', (line) => {
       if (PANIC) { return; }
-
-      if (stack.length < 2) {
-        stack.push(line);
-      } else {
-        // log("line data", line);
-        // process_line(ast, state, line)
-      }
       process_line(ast, state, line)
     });
 
@@ -314,10 +303,11 @@ function process_node(ast, state, type) {
 
     ast.members[node.id] = node;
     if (!pnode.mindex) { pnode.mindex = {} };
-
     pnode.mindex[parseInt(state.lno)] = node.id;
 
-  } else {
+  }
+
+  else {
     container = state.config[type].container;
     node = cached_node(ast, index, container, {
       node_type: type,
@@ -326,11 +316,9 @@ function process_node(ast, state, type) {
     });
   }
 
-  node.data.push(state.current_line);
-
-  // Clear previous ref_type
-  state.previous[ref_type] = null;
   state.node = node;
+  state.node.data.push(state.current_line);
+  state.previous[ref_type] = null;
 
   insert_index(ast, state, type, index_data);
   return node;
@@ -371,6 +359,16 @@ function tokenizer(ast, state) {
       state.current[COMM] = state.lno;
       state.closing[COMM] = true;
       state.block_start = true;
+    }
+
+    else if (!state.inside[CODE]  && state.ln.indexOf("/*") >= 0) {
+      state.current[COMM] = state.lno;
+
+      if (state.ln.indexOf("*/") >= 0) {
+        state.closing[COMM] = true;
+      } else {
+        state.block_start = true;
+      }
     }
 
     else if (!state.inside[DEF] &&
@@ -513,25 +511,26 @@ function insert_index(ast, state, type, opts) {
 */
 function insert_node(ast, state) {
   const prev_index = ast.index[state.lno - 1];
-  const prev_line = prev_index && ast.source[state.lno - 1];
+  const prev_line = prev_index && ast.source[state.lno - 1] || "";
+  
+  const comm_starting = state.ln.indexOf("/*") >= 0;
+  const prev_comm_ended = prev_line.indexOf("*/") >= 0;
+
+  let diff_comm_types;
+  
+  // Compare the current line against previous line for varying comment types
+  if (state.ln.indexOf('//') == 0 && prev_line.indexOf('//') < 0) {
+    diff_comm_types = true;
+  }
 
   if (!state.inside[DEF] && (state.inside[COMM] || state.closing[COMM])) {
-    let comm_starting = state.ln.indexOf("/*") >= 0;
-    let diff_comm_types;
-    
     process_node(ast, state, COMM);
-
-    // Compare the current line against previous line for varying comment types
-    if (state.ln.indexOf('//') == 0 && prev_line.indexOf('//') < 0) {
-      diff_comm_types = true;
-    }
 
     if (!comm_starting && !diff_comm_types && prev_index && prev_index.type == COMM) {
       let target = ast[COMM][prev_index.node_id];
 
       if (!target) {
-        log.cyan(ast);
-        log.grn(prev_index)
+        log.error("Missing target", state.lno, prev_index.node_id);
       }
 
       combine_nodes(ast, target, state.node);
@@ -552,10 +551,10 @@ function insert_node(ast, state) {
 
   else if (state.inside[DEF] || state.closing[DEF]) {
     // Combine internal comments
-    if (!state.closing[DEF] && state.ln.indexOf("//") == 0) {
+    if (!state.closing[DEF] && (state.inside[COMM] || state.closing[COMM]) ) {
       process_node(ast, state, COMM);
 
-      if (prev_index && prev_index.type == COMM) {
+      if (!prev_comm_ended && !diff_comm_types && prev_index && prev_index.type == COMM) {
         combine_nodes(ast, ast[COMM][prev_index.node_id], state.node);
       }
     }

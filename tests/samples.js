@@ -188,6 +188,11 @@ enum nk_keys {
     NK_KEY_TEXT_LINE_START,
     NK_KEY_TEXT_LINE_END,
     NK_KEY_TEXT_START,
+
+    /**
+     * Multi line member
+     * commento :-)
+     */
     NK_KEY_TEXT_END,
     NK_KEY_TEXT_UNDO,
     NK_KEY_TEXT_REDO,
