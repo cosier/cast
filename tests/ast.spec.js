@@ -7,48 +7,30 @@
  * @license MIT
  */
 
+const chai = require('chai')
+const expect = chai.expect;
 
-import {expect} from 'chai';
-import readline from 'readline';
-import fs from 'fs';
+const logger = require('../src/utils').logger;
+const samples = require('./samples');
 
-// import { describe, before, it } from 'mocha';
-import assert from 'assert';
+const Processor = require('../src/processor');
 
-import {Readable} from 'stream';
-import streamBuffers from 'stream-buffers';
+const COMM = Processor.COMM;
+const CODE = Processor.CODE;
+const CHAR = Processor.CHAR;
+const DEF = Processor.DEF;
+const MEMB = Processor.MEMB;
+const NA = Processor.NA;
+const gen_ast = Processor.gen_ast;
 
-import {logger} from '../src/utils';
-import samples from './samples';
-
-import {
-  COMM, CODE, CHAR, DEF, MEMB, NA,
-  gen_ast} from '../src/processor';
-
+//////////////////////////////////////////////////////////////////////
 
 /**
  * Utility log namespaced helper
  */
 const log = logger('spec');
-
-/**
- * Sets up a streaming buffer reader for test harnessing
- * @return {Buffer, Reader}
- */
-function setup(sample) {
-  const buffer = new streamBuffers.ReadableStreamBuffer({
-    frequency: 10,   // in milliseconds.
-    chunkSize: 32 * 2048  // in bytes.
-  });
-
-  const input = readline.createInterface({
-    input: buffer, terminal: false });
-
-  buffer.put(sample || "");
-  buffer.stop();
-
-  return {buffer, input}
-}
+const helpers = require('./test_helper');
+const setup = helpers.setup;
 
 //////////////////////////////////////////////////////////////////////
 describe('Streaming Input', async () => {
@@ -72,7 +54,7 @@ describe('Functions', async () => {
     ast = await gen_ast(setup(samples.FUNC).input);
   })
 
-  it('should handle function code points', async() => {
+  it('should handle function code points', async () => {
     expect(ast.keys(COMM).length).to.equal(1);
     expect(ast.keys(CODE).length).to.equal(1);
   });
@@ -97,26 +79,28 @@ describe('Structures', async () => {
   let ast;
 
   before(async () => {
+    process.env.WOOT == true;
     ast = await gen_ast(setup(samples.STRUCT).input);
   })
 
-  it('should handle function structs', async() => {
-    expect(ast.keys(DEF).length).to.equal(1);
-    expect(ast.keys(COMM).length).to.equal(2);
-  });
-
-  it('should associate comments to def members', async() => {
+  it('should associate comments to def members', async () => {
     const comm_node = ast.node(0);
     const def_node = ast.node(3);
 
     expect(comm_node.assocs).to.have.property('defs');
     expect(def_node.assocs).to.have.property('comments');
+    process.env.WOOT = false;
 
     expect(comm_node.assocs.defs[0]).to.equal(def_node.id);
     expect(def_node.assocs.comments[0]).to.equal(comm_node.id);
   });
 
-  it('should handle inner members', async() => {
+  it('should handle function structs', async () => {
+    expect(ast.keys(DEF).length).to.equal(1);
+    expect(ast.keys(COMM).length).to.equal(2);
+  });
+
+  it('should handle inner members', async () => {
     const lookup = ast.index[5];
     const def_node = ast.node(3);
     const comm_node = ast.node(5);
@@ -136,7 +120,7 @@ describe('Structs & Functions Combos', async () => {
     ast = await gen_ast(setup(samples.STRUCT_FUNCS).input);
   })
 
-  it('should parse CODE,DEF,COMM together', async() => {
+  it('should parse CODE,DEF,COMM together', async () => {
     expect(ast.keys(CODE).length).to.equal(1);
     expect(ast.keys(DEF).length).to.equal(1);
     expect(ast.keys(COMM).length).to.equal(3);
@@ -151,7 +135,7 @@ describe('Struct Declarations', async () => {
     ast = await gen_ast(setup(samples.STRUCT_DECLS).input);
   })
 
-  it('should parse a list of declarations', async() => {
+  it('should parse a list of declarations', async () => {
     // Only a few decls have a comment
     expect(ast.keys(COMM).length).to.equal(3);
 
@@ -180,10 +164,44 @@ describe('Comment Associations', async () => {
     ast = await gen_ast(setup(samples.COMM_SPACES).input);
   })
 
-  it('should recognize independent comments', async() => {
-    log.h1(ast)
+  it('should recognize independent comments', async () => {
     expect(ast.keys(COMM).length).to.equal(3)
     expect(ast.node(8).assocs).to.not.have.property(COMM);
+
+    expect(ast.node(3).assocs[DEF][0]).to.equal(4);
+    expect(ast.node(4).assocs[COMM][0]).to.equal(3);
+  })
+});
+
+
+//////////////////////////////////////////////////////////////////////
+describe('Documentated Function', async () => {
+  let ast;
+
+  before(async () => {
+    ast = await gen_ast(setup(samples.STRUCT_DOC).input);
   })
 
+  it('should recognize multi-line documentation', async () => {
+    //log.cyan(ast);
+    //expect(ast.keys(COMM).length).to.equal(1)
+    expect(ast.keys(CODE).length).to.equal(1)
+  })
+});
+
+
+//////////////////////////////////////////////////////////////////////
+describe('Enumerations', async () => {
+  let ast;
+
+  before(async () => {
+    ast = await gen_ast(setup(samples.ENUMS).input);
+  })
+
+  it('should recognize multi-line documentation', async () => {
+    //log.cyan(ast);
+    expect(ast.count(DEF)).to.deep.equal({ [DEF]: 2 })
+    expect(ast.count(COMM)).to.deep.equal({ [COMM]: 4 })
+    expect(ast.count(CODE)).to.deep.equal({ [CODE]: 0 })
+  })
 });
