@@ -1,154 +1,111 @@
 {
-    "name": "c-ast",
-    "version": "0.0.1",
-    "author": "Bailey Cosier",
-    "homepage": "https://github.com/cosier/cast#readme",
-    "description": "Ansi C AST Generator",
-    "license": "MIT",
-    "main": "dist/index.js",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/cosier/cast.git"
+  "name": "c-ast",
+  "version": "0.0.1",
+  "author": "Bailey Cosier",
+  "homepage": "https://github.com/cosier/cast#readme",
+  "description": "Ansi C AST Generator",
+  "license": "MIT",
+  "main": "src/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cosier/cast.git"
+  },
+  "keywords": [
+    "abstract syntax tree",
+    "syntax",
+    "tree",
+    "ast"
+  ],
+  "bugs": {
+    "url": "https://github.com/cosier/cast/issues"
+  },
+  "bin": {
+    "c-ast": "bin/cast.js"
+  },
+  "scripts": {
+    "dev": "$(npm bin)/better-npm-run dev",
+    "sample": "$(npm bin)/better-npm-run sample",
+    "sample-stdout": "$(npm bin)/better-npm-run sample-stdout",
+    "debug": "$(npm bin)/better-npm-run debug",
+    "clean": "rimraf dist",
+    "compile": "$(npm bin)/better-npm-run compile",
+    "watch": "$(npm bin)/better-npm-run watch",
+    "test": "$(npm bin)/better-npm-run test",
+    "test:debug": "$(npm bin)/better-npm-run test:debug",
+    "lint": "$(npm bin)/better-npm-run lint",
+    "lint:watch": "$(npm bin)/esw -c .eslintrc.yml -w --color",
+    "lint:full": "npm run lint -- src tests server build config",
+    "lint:fix": "npm run lint -- --fix"
+  },
+  "betterScripts": {
+    "sample": {
+      "command": "$(npm bin)/better-npm-run dev -- transform specimen/sample.h",
+      "env": {
+        "DEBUG": "app:*"
+      }
     },
-    "keywords": [
-        "abstract syntax tree",
-        "syntax",
-        "tree",
-        "ast"
-    ],
-    "bugs": {
-        "url": "https://github.com/cosier/cast/issues"
+    "test": {
+      "command": "$NODE $BRK $(npm bin)/$RUNNER $OPTS $GLOB $TEST_DIR",
+      "env": {
+        "NODE": "node",
+        "RUNNER": "mocha",
+        "OPTS": "-R nyan -c --watch --glob",
+        "GLOB": "*.spec.js",
+        "TEST_DIR": "tests",
+        "NODE_ENV": "test"
+      }
     },
-    "bin": {
-        "c-ast": "bin/cast.js"
+    "test:debug": {
+      "command": "better-npm-run test",
+      "env": {
+        "RUNNER": "mocha debug"
+      }
     },
-    "scripts": {
-        "dev": "$(npm bin)/better-npm-run dev",
-        "sample": "$(npm bin)/better-npm-run sample",
-        "sample-stdout": "$(npm bin)/better-npm-run sample-stdout",
-        "debug": "$(npm bin)/better-npm-run debug",
-        "clean": "rimraf dist",
-        "compile": "$(npm bin)/better-npm-run compile",
-        "watch": "$(npm bin)/better-npm-run watch",
-        "test": "$(npm bin)/better-npm-run test",
-        "test:debug": "$(npm bin)/better-npm-run test:debug",
-        "lint": "$(npm bin)/better-npm-run lint",
-        "lint:watch": "$(npm bin)/esw -c .eslintrc.yml -w --color",
-        "lint:full": "npm run lint -- src tests server build config",
-        "lint:fix": "npm run lint -- --fix"
-    },
-    "betterScripts": {
-        "watch": {
-            "command": "$(npm bin)/webpack --config build/webpack.config.js --watch src"
-        },
-        "compile": {
-            "command": "$(npm bin)/webpack --config build/webpack.config.js src"
-        },
-        "sample-stdout": {
-            "command": "$(npm bin)/better-npm-run dev -- transform specimen/sample.h",
-            "env": {
-                "DEBUG": "app:*"
-            }
-        },
-        "sample": {
-            "command": "$(npm bin)/better-npm-run dev -- transform specimen/sample.h tmp/output.h",
-            "env": {
-                "DEBUG": "app:*"
-            }
-        },
-        "dev": {
-            "command": "node --inspect dist/index.js",
-            "env": {
-                "DEBUG": "app:*"
-            }
-        },
-        "deploy": {
-            "command": "npm run clean && npm run compile",
-            "env": {
-                "DEBUG": "app:*"
-            }
-        },
-        "deploy:dev": {
-            "command": "npm run deploy",
-            "env": {
-                "NODE_ENV": "development",
-                "DEBUG": "app:*"
-            }
-        },
-        "deploy:prod": {
-            "command": "npm run deploy",
-            "env": {
-                "NODE_ENV": "production",
-                "DEBUG": "app:*"
-            }
-        },
-        "test": {
-            "command": "$NODE $BRK $(npm bin)/$RUNNER $CONFIG $OPTS $GLOB $TEST_DIR",
-            "env": {
-                "NODE": "node --inspect=0.0.0.0:9000",
-                "RUNNER": "mocha-webpack",
-                "CONFIG": "--webpack-config build/webpack.config.test.js",
-                "OPTS": "-R nyan --watch --glob",
-                "GLOB": "*.spec.js",
-                "TEST_DIR": "tests",
-                "NODE_ENV": "test"
-            }
-        },
-        "test:debug": {
-            "command": "better-npm-run test",
-            "env": {
-                "BRK": "--inspect-brk"
-            }
-        },
-        "lint": {
-            "command": "$(npm bin)/eslint -c .eslintrc.js tests src",
-            "env": {
-                "NODE_ENV": "test"
-            }
-        }
-    },
-    "dependencies": {
-        "cliui": "^3.2.0",
-        "cross-spawn": "^5.1.0",
-        "multilang-extract-comments": "^0.3.0",
-        "spawn-sync": "^1.0.15",
-        "thread-sleep": "^2.0.0",
-        "try-thread-sleep": "^1.0.2",
-        "yargs": "^9.0.1"
-    },
-    "devDependencies": {
-        "ajv": ">=4.10.0",
-        "babel-cli": "^6.18.0",
-        "babel-core": "^6.3.17",
-        "babel-eslint": "^7.1.1",
-        "babel-jest": "^19.0.0",
-        "babel-loader": "^7.1.1",
-        "babel-plugin-transform-decorators-legacy": "^1.3.4",
-        "babel-plugin-transform-es3-member-expression-literals": "^6.8.0",
-        "babel-plugin-transform-es3-property-literals": "^6.8.0",
-        "babel-plugin-transform-runtime": "^6.9.0",
-        "babel-preset-es2015": "^6.9.0",
-        "babel-preset-stage-0": "^6.5.0",
-        "better-npm-run": "^0.1.0",
-        "chai": "^3.4.1",
-        "chai-as-promised": "^6.0.0",
-        "codecov": "^1.0.1",
-        "eslint": "^4.7.1",
-        "eslint-config-google": "^0.9.1",
-        "eslint-import-resolver-webpack": "^0.8.1",
-        "eslint-plugin-babel": "^4.1.1",
-        "eslint-plugin-dependencies": "^2.2.0",
-        "eslint-plugin-import": "^2.2.0",
-        "eslint-plugin-jsx-a11y": "^5.1.1",
-        "eslint-plugin-promise": "^3.5.0",
-        "eslint-plugin-standard": "^2.1.1",
-        "eslint-watch": "^3.0.1",
-        "mocha": "cosier/mocha",
-        "mocha-webpack": "^1.0.0-rc.1",
-        "sinon": "^1.17.3",
-        "sinon-chai": "^2.8.0",
-        "stream-buffers": "^3.0.1",
-        "webpack": "^3.6.0",
-        "webpack-dev-middleware": "^1.10.2"
+    "lint": {
+      "command": "$(npm bin)/eslint -c .eslintrc.js tests src",
+      "env": {
+        "NODE_ENV": "test"
+      }
     }
+  },
+  "dependencies": {
+    "cliui": "^3.2.0",
+    "cross-spawn": "^5.1.0",
+    "multilang-extract-comments": "^0.3.0",
+    "spawn-sync": "^1.0.15",
+    "thread-sleep": "^2.0.0",
+    "try-thread-sleep": "^1.0.2",
+    "yargs": "^9.0.1"
+  },
+  "devDependencies": {
+    "ajv": ">=4.10.0",
+    "babel-cli": "^6.18.0",
+    "babel-core": "^6.3.17",
+    "babel-eslint": "^7.1.1",
+    "babel-jest": "^19.0.0",
+    "babel-loader": "^7.1.1",
+    "babel-plugin-transform-decorators-legacy": "^1.3.4",
+    "babel-plugin-transform-es3-member-expression-literals": "^6.8.0",
+    "babel-plugin-transform-es3-property-literals": "^6.8.0",
+    "babel-plugin-transform-runtime": "^6.9.0",
+    "babel-preset-es2015": "^6.9.0",
+    "babel-preset-stage-0": "^6.5.0",
+    "better-npm-run": "^0.1.0",
+    "chai": "^3.4.1",
+    "chai-as-promised": "^6.0.0",
+    "codecov": "^1.0.1",
+    "eslint": "^4.7.1",
+    "eslint-config-google": "^0.9.1",
+    "eslint-plugin-babel": "^4.1.1",
+    "eslint-plugin-dependencies": "^2.2.0",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-jsx-a11y": "^5.1.1",
+    "eslint-plugin-promise": "^3.5.0",
+    "eslint-plugin-standard": "^2.1.1",
+    "eslint-watch": "^3.0.1",
+    "mocha": "cosier/mocha",
+    "sinon": "^1.17.3",
+    "sinon-chai": "^2.8.0",
+    "stream-buffers": "^3.0.1"
+  }
 }

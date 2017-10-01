@@ -1,3 +1,8 @@
 #!/usr/bin/env node
-var cli = require('c-ast').cli
-cli.exec();
+const cast = require('c-ast');
+if (cast) {
+  cast.cli.exec();
+} else {
+  console.error("c-ast library not found");
+  console.error("try installing it with `npm i -g c-ast`")
+}
