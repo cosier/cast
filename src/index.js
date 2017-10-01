@@ -1,4 +1,8 @@
-import {exec} from './cli';
+const cli = require('./cli');
+const processor = require('./processor');
 
-exec();
+module.exports = {
+  processor,
+  cli
+}
 

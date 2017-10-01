@@ -1,6 +1,6 @@
 import yargs from 'yargs/yargs';
 import {logger} from './utils';
-import {doctor} from './processor';
+import {ast_from_file} from './processor';
 
 /**
  * CLI Log helper
@@ -62,14 +62,14 @@ function exec() {
                           "\nFile [input] needs to be specified\n")
                   } else {
                       let ret = 1;
-                      let process = doctor(argv.input, argv.output)
+                      let process = ast_from_file(argv.input)
                           .then((result)=>{
                               if (result) { ret = 0; }
                               stop_gracefully(ret);
                           })
                           .catch((err)=>{
                               log.error(
-                                  "The doctor failed to process your input", err);
+                                  "Failed to process your input", err);
                               stop_gracefully(1);
                           });
 

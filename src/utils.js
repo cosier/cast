@@ -1,5 +1,4 @@
-import util from 'util';
-
+const util = require('util');
 
 /**
  * Colours lookup table
@@ -77,4 +76,4 @@ const logger = (name)=> {
   return log;
 }
 
-export {logger}
+module.exports = { logger: logger }

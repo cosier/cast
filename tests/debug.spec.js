@@ -42,7 +42,7 @@ describe('Debugging', async () => {
     it('should recognize multi-line documentation', async () => {
         log.cyan(ast);
         expect(ast.count(DEF)).to.deep.equal({ [DEF]: 2 })
-        expect(ast.count(COMM)).to.deep.equal({ [COMM]: 4 })
+        expect(ast.count(COMM)).to.deep.equal({ [COMM]: 5 })
         expect(ast.count(CODE)).to.deep.equal({ [CODE]: 0 })
     })
 

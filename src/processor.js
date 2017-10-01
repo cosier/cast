@@ -7,11 +7,13 @@
  * @author Bailey Cosier <bailey@cosier.ca>
  * @license MIT
  */
+const fs = require('fs');
+const write = fs.writeFileSync;
+const exists = fs.existsSync;
 
-import fs, {writeFileSync as write, existsSync as exists} from 'fs';
-import readline from 'readline';
-import {logger} from './utils';
-import {resolve} from 'path';
+const readline = require('readline');
+const logger = require('./utils').logger;
+const resolve = require('path');
 
 const CHAR = "char";
 const COMM = "comments";
@@ -19,6 +21,7 @@ const CODE = "code";
 const MEMB = "members";
 const DEF = "defs";
 const NA = "na";
+const SKIP = "skip";
 
 /**
  * Precompiled Regex selectors for function tokens
@@ -63,7 +66,7 @@ function process_line(ast, state, line) {
   ///////////////////////////////////////////////
   // Ignore non-applicable lines
   if (!state.inside[COMM] && (state.ln.indexOf('#') == 0 || state.ln == '')) {
-    ast.index[state.lno] = { type: NA }
+    insert_index(ast, state, NA, { node_id: state.lno })
     // Clear comment tracking as we have introduced an association break
     state.previous[COMM] = null;
     return;
@@ -71,7 +74,9 @@ function process_line(ast, state, line) {
 
   ///////////////////////////////////////////////
   // Detect tokens
-  tokenizer(ast, state);
+  if (tokenizer(ast, state) == SKIP) {
+    return;
+  }
 
   ///////////////////////////////////////////////
   // Process scope depths
@@ -192,25 +197,13 @@ function create_ast_struct() {
     index: []
   }
 
-  ast.present = (container) => {
-    const box = ast[container];
-    const accumulator = [];
-
-    if (!box) {
-      log.error(`invalid container: ${container}`);
-      return [];
-    }
-
-    for (let i = 0; i < box.length; i++) {
-      let c = box[i];
-      if (c) { accumulator.push(c) };
-    }
-
-    return accumulator;
-  }
-
   ast.keys = (container) => {
     return Object.keys(ast[container]);
+  }
+
+  ast.count = (container) => {
+    const c = ast.keys(container).length;
+    return {[container]: c }
   }
 
   ast.node = (id) => {
@@ -307,7 +300,7 @@ function process_node(ast, state, type) {
   const ref_type = state.config[type].ref;
   const ref_id = state.previous[ref_type];
   const index = state.current[type];
-  const index_data = { node_id: index, type: type };
+  const index_data = {};
 
   let container;
   let node;
@@ -318,8 +311,8 @@ function process_node(ast, state, type) {
 
     node = create_node(state.lno,
                        { node_type: MEMB });
-    ast.members[node.id] = node;
 
+    ast.members[node.id] = node;
     if (!pnode.mindex) { pnode.mindex = {} };
 
     pnode.mindex[parseInt(state.lno)] = node.id;
@@ -333,11 +326,13 @@ function process_node(ast, state, type) {
     });
   }
 
+  node.data.push(state.current_line);
+
   // Clear previous ref_type
   state.previous[ref_type] = null;
+  state.node = node;
 
-  node.data.push(state.current_line);
-  ast.index[state.lno] = index_data;
+  insert_index(ast, state, type, index_data);
   return node;
 }
 
@@ -351,39 +346,41 @@ function process_node(ast, state, type) {
 function tokenizer(ast, state) {
   const inside = 0 ||
         state.inside[CODE] ||
-        state.inside[COMM] ||
-        state.inside[DEF];
+        state.inside[COMM];
+        // state.inside[DEF];
 
-  if (!inside && state.ln.indexOf("/**") >= 0) {
+  if (!inside && state.ln.indexOf("/*") >= 0) {
     state.current[COMM] = state.lno;
-    state.inside[COMM] = true;
-    state.block_start = true;
+
+    if (state.ln.indexOf("*/") >= 0) {
+      state.closing[COMM] = true;
+    } else {
+      state.inside[COMM] = true;
+      state.block_start = true;
+    }
   }
 
   else if (state.ln.indexOf("*/") >= 0) {
-    state.inside[COMM] = false;
+    delete state.inside[COMM];
     state.closing[COMM] = true;
   }
 
   else if (!state.inside[COMM]) {
 
-    if (!state.inside[CODE]  && state.ln.indexOf("//") == 0) {
+    if (!state.inside[CODE]  && state.ln.indexOf("//") >= 0) {
       state.current[COMM] = state.lno;
       state.closing[COMM] = true;
       state.block_start = true;
     }
 
     else if (!state.inside[DEF] &&
+             !state.ln.match(REGEX.c_fn_decl) &&
              (state.ln.match(REGEX.c_struct_decl) ||
               state.ln.match(REGEX.c_enum_decl))) {
+
       state.inside[DEF] = true;
       state.current[DEF] = state.lno;
       state.block_start = true;
-
-      // Bump code depth automatically depending on brace style
-      if (state.ln.indexOf("{") >= 0) {
-        state.depth = 1;
-      }
     }
 
     else if (state.ln.match(REGEX.c_fn_decl)) {
@@ -396,21 +393,25 @@ function tokenizer(ast, state) {
         state.inside[CODE] = true;
         state.block_start = true;
       }
+    }
 
-      // Bump code depth automatically depending on brace style
-      if (state.ln.indexOf("{") >= 0) {
-        state.depth = 1;
+    else if (state.inside[DEF]) {
+      if (state.depth == 0) {
+        if (state.ln.indexOf("{") == 0) {
+          insert_index(ast, state, DEF, {node_id: state.lno});
+        }
+
+        else if (state.ln.indexOf("}") >= 0) {
+          insert_index(ast, state, DEF, {node_id: state.lno});
+        }
       }
+    }
 
-    } else if (!inside) {
-      // log(state.lno + 1, ln);
-      ast.index[state.lno] = { node_id: state.lno, type: CHAR }
-      ast.source[state.lno] = state.current_line;
-      state.lno++;
-      return;
+    else if (!inside) {
+      insert_index(ast, state, CHAR, {node_id: state.lno});
+      return SKIP;
     }
   }
-
 }
 
 /**
@@ -436,13 +437,13 @@ function scope_depths(ast, state) {
       if (state.inside[DEF]) {
         if (state.ln.indexOf(';') >= 1 ||
             (state.ln.indexOf('}') >= 0 && scope_delta == 0)) {
-          state.inside[DEF] = false;
+          delete state.inside[DEF];
           state.closing[DEF] = true;
         }
       }
 
       else if (state.inside[CODE] && state.ln.indexOf('}') >= 0) {
-        state.inside[CODE] = false;
+        delete state.inside[CODE];
         state.closing[CODE] = true;
       }
 
@@ -476,6 +477,34 @@ function scope_iterate(ast, state) {
   }
 }
 
+function insert_index(ast, state, type, opts) {
+  if (!opts) { opts = {}; }
+
+  let node_id = opts.node_id;
+  if (state.node) {
+    node_id = state.node.id;
+  }
+
+  if (!node_id && node_id != 0) {
+    log.error("invalid state.node")
+    process.exit(1);
+  }
+
+  const data = {
+    node_id: node_id,
+    type: type,
+    line: state.current_line,
+  }
+
+  if (opts) {
+    for (let k in opts ) {
+      data[k] = opts[k]
+    }
+  }
+
+  ast.index[state.lno] = data;
+}
+
 /**
  * Processes line state into a node for AST insertion.
  *
@@ -487,22 +516,33 @@ function insert_node(ast, state) {
   const prev_line = prev_index && ast.source[state.lno - 1];
 
   if (!state.inside[DEF] && (state.inside[COMM] || state.closing[COMM])) {
-    state.node = process_node(ast, state, COMM);
+    let comm_starting = state.ln.indexOf("/*") >= 0;
+    let diff_comm_types;
+    
+    process_node(ast, state, COMM);
 
-    if (prev_index && prev_index.type == COMM) {
+    // Compare the current line against previous line for varying comment types
+    if (state.ln.indexOf('//') == 0 && prev_line.indexOf('//') < 0) {
+      diff_comm_types = true;
+    }
+
+    if (!comm_starting && !diff_comm_types && prev_index && prev_index.type == COMM) {
       let target = ast[COMM][prev_index.node_id];
-      //log.h2("combining", state.node, target)
+
+      if (!target) {
+        log.cyan(ast);
+        log.grn(prev_index)
+      }
 
       combine_nodes(ast, target, state.node);
-
     }
 
   }
 
   else if (state.inside[CODE] || state.closing[CODE]) {
-    state.node = process_node(ast, state, CODE);
+    process_node(ast, state, CODE);
 
-    if (prev_index && prev_index.type == DEF || prev_index.type == CHAR) {
+    if (prev_index && (prev_index.type == DEF || prev_index.type == CHAR)) {
       transform_node(ast, prev_index.node_id, prev_index.type, CODE);
       combine_nodes(ast, ast.code[prev_index.node_id], ast.code[state.lno]);
       state.current[CODE] = prev_index.node_id;
@@ -513,7 +553,7 @@ function insert_node(ast, state) {
   else if (state.inside[DEF] || state.closing[DEF]) {
     // Combine internal comments
     if (!state.closing[DEF] && state.ln.indexOf("//") == 0) {
-      state.node = process_node(ast, state, COMM);
+      process_node(ast, state, COMM);
 
       if (prev_index && prev_index.type == COMM) {
         combine_nodes(ast, ast[COMM][prev_index.node_id], state.node);
@@ -530,7 +570,7 @@ function insert_node(ast, state) {
     }
 
     else {
-      state.node = process_node(ast, state, DEF);
+      process_node(ast, state, DEF);
     }
   }
 
@@ -571,6 +611,13 @@ function transform_node(ast, index, from, dst) {
  * @return {void}
  */
 function combine_nodes(ast, no1, no2) {
+  if (!no1 || !no1.id && no1.id != 0){
+    console.trace();
+    log.cyan('no1 ' + no1)
+    debugger;
+    process.exit(1);
+  }
+
   const range = no1.id - no2.id;
   let n1, n2;
 
@@ -635,7 +682,14 @@ function find_common_precedence(ast, state, node) {
       node.type == DEF ||
       node.type == MEMB) {
 
-    let prev_comm_id = ast.index[node.id - 1].node_id
+        let prev_index = ast.index[node.id - 1];
+
+    if (!prev_index) {
+      log.error("invalid prev_index");
+      return;
+    }
+
+    let prev_comm_id = prev_index.node_id
     let lookup = ast.index[prev_comm_id];
 
     if (lookup && lookup.type == COMM) {
@@ -699,7 +753,7 @@ async function ast_from_file(input) {
 /**
  * Define AST interface
  */
-export {
+module.exports = {
   // Higher order api functions
   ast_from_file,
 

@@ -177,6 +177,7 @@ enum nk_keys {
     NK_KEY_CUT,
     NK_KEY_PASTE,
     NK_KEY_UP,
+    // NK_KEY_DOWN COMMENT
     NK_KEY_DOWN,
     NK_KEY_LEFT,
     NK_KEY_RIGHT,
