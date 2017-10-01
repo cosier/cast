@@ -100,14 +100,14 @@ function process_line(ast, state, line) {
  */
 function container_from_type(type) {
   switch (type) {
-  case COMM:
-    return 'comments';
+    case COMM:
+      return 'comments';
 
-  case DEF:
-    return 'defs';
+    case DEF:
+      return 'defs';
 
-  case CODE:
-    return 'code';
+    case CODE:
+      return 'code';
   }
 
   return type;
@@ -122,9 +122,9 @@ function container_from_type(type) {
  *
  * @return {object} AST Node
  */
-function create_node(id, {node_type, assoc_type, assoc_id}) {
+function create_node(id, { node_type, assoc_type, assoc_id, ...extra }) {
   // Prepare initial association references
-  let assoc_container = {_id: id, _type: node_type};
+  let assoc_container = {};
 
   if (assoc_id) {
     assoc_container[assoc_type] = [assoc_id]
@@ -134,7 +134,10 @@ function create_node(id, {node_type, assoc_type, assoc_id}) {
     id: id,
     type: node_type,
     assocs: assoc_container,
-    data: []
+    data: [],
+    inner: [],
+    index: {},
+    ...extra
   };
 }
 
@@ -178,7 +181,7 @@ function create_state() {
       [COMM]: { ref: CODE, container: COMM },
       [CODE]: { ref: COMM, container: CODE },
       [MEMB]: { ref: DEF, container: DEF },
-      [DEF]:  { ref: COMM, container: DEF }
+      [DEF]: { ref: COMM, container: DEF }
     }
   };
 }
@@ -193,22 +196,56 @@ function create_ast_struct() {
     comments: {},
     code: {},
     defs: {},
-    members: {},
-    index: []
+    index: {}
   }
 
+  /**
+   * Gets an array of keys inside the given AST container type.
+   * @param container {string} type of AST container.
+   *   Possible values are constants: COMM,CODE,DEF 
+   */
   ast.keys = (container) => {
     return Object.keys(ast[container]);
   }
 
+  /**
+   * Get inner elements of a given node id.
+   * If type is provided, only those matching the type id will be returned.
+   * 
+   * @param pid {number} Id of the node
+   * @param type {string|optional} Type of the inner node to be returned.
+   * @return results {Array} of  inner elements
+   */
+  ast.inner = (pid, type) => {
+    const n = ast.node(pid);
+    const results = [];
+    for (let i = 0; i < n.inner.length; i++) {
+      let item = n.inner[i];
+      if (!type || (item && item.type == type)) {
+        results.push(item)
+      }
+    }
+    return results;
+  }
+
   ast.count = (container) => {
     const c = ast.keys(container).length;
-    return {[container]: c }
+    return { [container]: c }
   }
 
   ast.node = (id) => {
-    const container = container_from_type(ast.index[id].type);
-    return ast[container][id];
+    const index = ast.index[id];
+    const type = index.type;
+    
+    if (type == MEMB) {
+      const p = ast.node(index.parent)
+      return p.inner[index.inner_id];
+    } 
+    
+    else {
+      const container = container_from_type(type);
+      return ast[container][id];
+    }
   }
 
   return ast;
@@ -260,7 +297,7 @@ function gen_ast(buffer) {
   const state = create_state();
 
   // Asyncronously process our buffer into an AST
-  const compute = new Promise((resolve, reject)=>{
+  const compute = new Promise((resolve, reject) => {
     buffer.on('line', (line) => {
       if (PANIC) { return; }
       process_line(ast, state, line)
@@ -299,11 +336,19 @@ function process_node(ast, state, type) {
     index_data.parent = pnode.id;
 
     node = create_node(state.lno,
-                       { node_type: MEMB });
+      {
+        node_type: type,
+        parent: pnode.id
+      });
 
-    ast.members[node.id] = node;
-    if (!pnode.mindex) { pnode.mindex = {} };
-    pnode.mindex[parseInt(state.lno)] = node.id;
+    const inner_id = pnode.inner.length;
+    index_data.inner_id = inner_id;
+
+    pnode.inner.push(node);
+    pnode.index[state.lno] = {
+      in: inner_id,
+      type: type
+    };
 
   }
 
@@ -333,11 +378,11 @@ function process_node(ast, state, type) {
  */
 function tokenizer(ast, state) {
   const inside = 0 ||
-        state.inside[CODE] ||
-        state.inside[COMM];
-        // state.inside[DEF];
+    state.inside[CODE] ||
+    state.inside[COMM];
+  // state.inside[DEF];
 
-  if (!inside && state.ln.indexOf("/*") >= 0) {
+  if (!inside && state.ln.indexOf("/*") == 0) {
     state.current[COMM] = state.lno;
 
     if (state.ln.indexOf("*/") >= 0) {
@@ -348,20 +393,20 @@ function tokenizer(ast, state) {
     }
   }
 
-  else if (state.ln.indexOf("*/") >= 0) {
+  else if (state.inside[COMM] && state.ln.indexOf("*/") >= 0) {
     delete state.inside[COMM];
     state.closing[COMM] = true;
   }
 
   else if (!state.inside[COMM]) {
 
-    if (!state.inside[CODE]  && state.ln.indexOf("//") >= 0) {
+    if (!state.inside[CODE] && state.ln.indexOf("//") == 0) {
       state.current[COMM] = state.lno;
       state.closing[COMM] = true;
       state.block_start = true;
     }
 
-    else if (!state.inside[CODE]  && state.ln.indexOf("/*") >= 0) {
+    else if (!state.inside[CODE] && state.ln.indexOf("/*") == 0) {
       state.current[COMM] = state.lno;
 
       if (state.ln.indexOf("*/") >= 0) {
@@ -372,16 +417,16 @@ function tokenizer(ast, state) {
     }
 
     else if (!state.inside[DEF] &&
-             !state.ln.match(REGEX.c_fn_decl) &&
-             (state.ln.match(REGEX.c_struct_decl) ||
-              state.ln.match(REGEX.c_enum_decl))) {
+      !state.ln.match(REGEX.c_fn_decl) &&
+      (state.ln.match(REGEX.c_struct_decl) ||
+        state.ln.match(REGEX.c_enum_decl))) {
 
       state.inside[DEF] = true;
       state.current[DEF] = state.lno;
       state.block_start = true;
     }
 
-    else if (state.ln.match(REGEX.c_fn_decl)) {
+    else if (!state.inside[DEF] && state.ln.match(REGEX.c_fn_decl)) {
       state.current[CODE] = state.lno;
 
       // Handle one line declarations
@@ -396,17 +441,17 @@ function tokenizer(ast, state) {
     else if (state.inside[DEF]) {
       if (state.depth == 0) {
         if (state.ln.indexOf("{") == 0) {
-          insert_index(ast, state, DEF, {node_id: state.lno});
+          insert_index(ast, state, DEF, { node_id: state.lno });
         }
 
         else if (state.ln.indexOf("}") >= 0) {
-          insert_index(ast, state, DEF, {node_id: state.lno});
+          insert_index(ast, state, DEF, { node_id: state.lno });
         }
       }
     }
 
     else if (!inside) {
-      insert_index(ast, state, CHAR, {node_id: state.lno});
+      insert_index(ast, state, CHAR, { node_id: state.lno });
       return SKIP;
     }
   }
@@ -424,7 +469,7 @@ function scope_depths(ast, state) {
   // Detect closing scope depths
   const scope_open = (state.ln.match(/{/g) || []).length;
   const scope_close = (state.ln.match(/}/g) || []).length;
-  const scope_delta =  (scope_close - scope_open) - state.depth;
+  const scope_delta = (scope_close - scope_open) - state.depth;
 
   if (state.inside[CODE] || state.inside[DEF]) {
     // Close the scope if ; or } is present for struct / func respectively
@@ -434,7 +479,7 @@ function scope_depths(ast, state) {
       // Handle definition before code points for nesting realization
       if (state.inside[DEF]) {
         if (state.ln.indexOf(';') >= 1 ||
-            (state.ln.indexOf('}') >= 0 && scope_delta == 0)) {
+          (state.ln.indexOf('}') >= 0 && scope_delta == 0)) {
           delete state.inside[DEF];
           state.closing[DEF] = true;
         }
@@ -484,7 +529,8 @@ function insert_index(ast, state, type, opts) {
   }
 
   if (!node_id && node_id != 0) {
-    log.error("invalid state.node")
+    log.error("invalid state.node:",
+      node_id, type, state.ln, state.lno)
     process.exit(1);
   }
 
@@ -495,7 +541,7 @@ function insert_index(ast, state, type, opts) {
   }
 
   if (opts) {
-    for (let k in opts ) {
+    for (let k in opts) {
       data[k] = opts[k]
     }
   }
@@ -512,12 +558,12 @@ function insert_index(ast, state, type, opts) {
 function insert_node(ast, state) {
   const prev_index = ast.index[state.lno - 1];
   const prev_line = prev_index && ast.source[state.lno - 1] || "";
-  
-  const comm_starting = state.ln.indexOf("/*") >= 0;
+
+  const comm_starting = state.ln.indexOf("/*") == 0;
   const prev_comm_ended = prev_line.indexOf("*/") >= 0;
 
   let diff_comm_types;
-  
+  log.cyan("insert_node", state.ln)
   // Compare the current line against previous line for varying comment types
   if (state.ln.indexOf('//') == 0 && prev_line.indexOf('//') < 0) {
     diff_comm_types = true;
@@ -551,7 +597,7 @@ function insert_node(ast, state) {
 
   else if (state.inside[DEF] || state.closing[DEF]) {
     // Combine internal comments
-    if (!state.closing[DEF] && (state.inside[COMM] || state.closing[COMM]) ) {
+    if (!state.closing[DEF] && (state.inside[COMM] || state.closing[COMM])) {
       process_node(ast, state, COMM);
 
       if (!prev_comm_ended && !diff_comm_types && prev_index && prev_index.type == COMM) {
@@ -561,10 +607,10 @@ function insert_node(ast, state) {
 
     // Look for internal struct members
     else if (!state.closing[DEF] && !state.block_start &&
-        state.ln.length > 1)
-    {
+      state.ln.length > 1) {
+      console.error("internal struct members:", state.ln)
       state.current[MEMB] = state.lno;
-      state.node = process_node(ast, state, MEMB);
+      process_node(ast, state, MEMB);
       state.current[MEMB] = null;
     }
 
@@ -575,7 +621,7 @@ function insert_node(ast, state) {
 
   else {
     log.error("non-reachable: unknown state",
-              { no: state.lno + 1, line: state.current_line });
+      { no: state.lno + 1, line: state.current_line });
   }
 }
 
@@ -610,7 +656,7 @@ function transform_node(ast, index, from, dst) {
  * @return {void}
  */
 function combine_nodes(ast, no1, no2) {
-  if (!no1 || !no1.id && no1.id != 0){
+  if (!no1 || !no1.id && no1.id != 0) {
     console.trace();
     log.cyan('no1 ' + no1)
     debugger;
@@ -677,11 +723,11 @@ function combine_nodes(ast, no1, no2) {
 function find_common_precedence(ast, state, node) {
   let match, container;
   if (node.type == CODE ||
-      node.type == CHAR ||
-      node.type == DEF ||
-      node.type == MEMB) {
+    node.type == CHAR ||
+    node.type == DEF ||
+    node.type == MEMB) {
 
-        let prev_index = ast.index[node.id - 1];
+    let prev_index = ast.index[node.id - 1];
 
     if (!prev_index) {
       log.error("invalid prev_index");

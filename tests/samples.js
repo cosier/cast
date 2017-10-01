@@ -215,6 +215,27 @@ enum nk_buttons {
 };
 `;
 
+
+const ENUMS_SINGLE_LINE =
+`
+/*
+*  nk_convert          - Converts from the abstract draw commands list into a hardware accessible vertex format
+*  nk__draw_begin      - Returns the first vertex command in the context vertex draw list to be executed
+*  nk__draw_next       - Increments the vertex command iterator to the next command inside the context vertex command list
+*  nk__draw_end        - Returns the end of the vertex draw list
+*  nk_draw_foreach     - Iterates over each vertex draw command inside the vertex draw list
+*/
+enum nk_anti_aliasing {NK_ANTI_ALIASING_OFF, NK_ANTI_ALIASING_ON};
+enum nk_convert_result {
+   NK_CONVERT_SUCCESS = 0,
+   NK_CONVERT_INVALID_PARAM = 1,
+   /* inner comment for NK_CONVERT_COMMAND_BUFFER_FULL */
+   NK_CONVERT_COMMAND_BUFFER_FULL = NK_FLAG(1),
+   NK_CONVERT_VERTEX_BUFFER_FULL = NK_FLAG(2), /* inline adjacent comment  */
+   NK_CONVERT_ELEMENT_BUFFER_FULL = NK_FLAG(3)
+};
+`
+
 const SAMPLES = {
   STRUCT_FUNCS,
   STRUCT_DECLS,
@@ -222,7 +243,8 @@ const SAMPLES = {
   STRUCT_DOC,
   FUNC,
   COMM_SPACES,
-  ENUMS
+  ENUMS,
+  ENUMS_SINGLE_LINE
 };
 
 module.exports = SAMPLES;
