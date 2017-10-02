@@ -7,5 +7,16 @@ module.exports = {
       "modules": true
     }
   },
-  "rules": {}
+  "rules": {
+    "camelcase": 0,
+    "no-console": 0,
+    "brace-style": "stroustrup"
+  },
+  "globals": {
+    "require": true,
+    "Promise": true,
+    "process": true,
+    "console": true,
+    "module": true
+  }
 };

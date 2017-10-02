@@ -8,20 +8,19 @@
  * @license MIT
  */
 const fs = require('fs');
-const write = fs.writeFileSync;
 const exists = fs.existsSync;
 
 const readline = require('readline');
 const logger = require('./utils').logger;
 const resolve = require('path');
 
-const CHAR = "char";
-const COMM = "comments";
-const CODE = "code";
-const MEMB = "members";
-const DEF = "defs";
-const NA = "na";
-const SKIP = "skip";
+const CHAR = 'char';
+const COMM = 'comments';
+const CODE = 'code';
+const MEMB = 'members';
+const DEF = 'defs';
+const NA = 'na';
+const SKIP = 'skip';
 
 /**
  * Precompiled Regex selectors for function tokens
@@ -30,8 +29,8 @@ const REGEX = {
   // C type function declaration
   c_fn_decl: /[aA0-zZ9_\s]+\(.*\)/,
   c_struct_decl: /struct[\s]+/,
-  c_enum_decl: /enum[\s]+/
-}
+  c_enum_decl: /enum[\s]+/,
+};
 
 /**
  * Panic flag.
@@ -47,9 +46,9 @@ const log = logger('processor');
 /**
  * Process individual lines fed by the buffer stream.
  *
- * @param ast   {object} Abstract Syntax Tree
- * @param state {object} Shared runtime state and config
- * @param line  {string} line being fed in this iteration.
+ * @param {object} ast Abstract Syntax Tree
+ * @param {object} state shared runtime and config
+ * @param {string} line being fed in this iteration.
  */
 function process_line(ast, state, line) {
   // Clear per line specific state;
@@ -63,40 +62,42 @@ function process_line(ast, state, line) {
   ast.source.push(line);
   state.lno++;
 
-  ///////////////////////////////////////////////
+  // /////////////////////////////////////////////
   // Ignore non-applicable lines
   if (!state.inside[COMM] && (state.ln.indexOf('#') == 0 || state.ln == '')) {
-    insert_index(ast, state, NA, { node_id: state.lno })
+    insert_index(ast, state, NA, { node_id: state.lno });
     // Clear comment tracking as we have introduced an association break
     state.previous[COMM] = null;
     return;
   }
 
-  ///////////////////////////////////////////////
+  // /////////////////////////////////////////////
   // Detect tokens
   if (tokenizer(ast, state) == SKIP) {
     return;
   }
 
-  ///////////////////////////////////////////////
+  // /////////////////////////////////////////////
   // Process scope depths
   scope_depths(ast, state);
 
-  ///////////////////////////////////////////////
+  // /////////////////////////////////////////////
   // Handle node insertions
   insert_node(ast, state);
 
-  ///////////////////////////////////////////////
+  // /////////////////////////////////////////////
   // Create associations
   create_association(ast, state);
 
-  ///////////////////////////////////////////////
+  // /////////////////////////////////////////////
   // Scope iteration and cleanup
   scope_iterate(ast, state);
 }
 
 /**
  * Convert node type to container definition string
+ * @param {string} type
+ * @return {string} formal container type
  */
 function container_from_type(type) {
   switch (type) {
@@ -116,9 +117,9 @@ function container_from_type(type) {
 /**
  * Create new textual node representation for the AST.
  *
- * @param id {number} identifying starting line for this node.
- * @param assoc_type {string} identifying associate reference type.
- * @param assoc_id {number} identifying associate reference id.
+ * @param {number} id identifying starting line for this node.
+ * @param {string} assoc_type identifying associate reference type.
+ * @param {number} assoc_id identifying associate reference id.
  *
  * @return {object} AST Node
  */
@@ -127,7 +128,7 @@ function create_node(id, { node_type, assoc_type, assoc_id, ...extra }) {
   let assoc_container = {};
 
   if (assoc_id) {
-    assoc_container[assoc_type] = [assoc_id]
+    assoc_container[assoc_type] = [assoc_id];
   }
 
   return {
@@ -137,16 +138,18 @@ function create_node(id, { node_type, assoc_type, assoc_id, ...extra }) {
     data: [],
     inner: [],
     index: {},
-    ...extra
+    ...extra,
   };
 }
 
 /**
  * Perform a cached lookup for an indexed Node.
  * If requested node is non-existent, it will be created.
- * @param ast {object} AST tree
- * @param index {number} ID Index for the node, typically line no.
- * @param container {string} container object.
+ * 
+ * @param {object} ast tree
+ * @param {number} index ID Index for the node, typically line no.
+ * @param {string} container type.
+ * @param {object} opts additional attributes for the created node.
  *
  * @return {object} AST Node
  */
@@ -181,8 +184,8 @@ function create_state() {
       [COMM]: { ref: CODE, container: COMM },
       [CODE]: { ref: COMM, container: CODE },
       [MEMB]: { ref: DEF, container: DEF },
-      [DEF]: { ref: COMM, container: DEF }
-    }
+      [DEF]: { ref: COMM, container: DEF },
+    },
   };
 }
 
@@ -196,25 +199,27 @@ function create_ast_struct() {
     comments: {},
     code: {},
     defs: {},
-    index: {}
-  }
+    index: {},
+  };
 
   /**
    * Gets an array of keys inside the given AST container type.
-   * @param container {string} type of AST container.
    *   Possible values are constants: COMM,CODE,DEF 
+   * 
+   * @param {string} container type of AST container.
+   * @return {array} array of item keys inside the container
    */
   ast.keys = (container) => {
     return Object.keys(ast[container]);
-  }
+  };
 
   /**
    * Get inner elements of a given node id.
    * If type is provided, only those matching the type id will be returned.
    * 
-   * @param pid {number} Id of the node
-   * @param type {string|optional} Type of the inner node to be returned.
-   * @return results {Array} of  inner elements
+   * @param {number} pid Id of the node
+   * @param {string|optional} type Type of the inner node to be returned.
+   * @return {Array} results of inner elements
    */
   ast.inner = (pid, type) => {
     const n = ast.node(pid);
@@ -222,31 +227,31 @@ function create_ast_struct() {
     for (let i = 0; i < n.inner.length; i++) {
       let item = n.inner[i];
       if (!type || (item && item.type == type)) {
-        results.push(item)
+        results.push(item);
       }
     }
     return results;
-  }
+  };
 
   ast.count = (container) => {
     const c = ast.keys(container).length;
-    return { [container]: c }
-  }
+    return { [container]: c };
+  };
 
   ast.node = (id) => {
     const index = ast.index[id];
     const type = index.type;
-    
+
     if (type == MEMB) {
-      const p = ast.node(index.parent)
+      const p = ast.node(index.parent);
       return p.inner[index.ind];
-    } 
-    
+    }
+
     else {
       const container = container_from_type(type);
       return ast[container][id];
     }
-  }
+  };
 
   return ast;
 }
@@ -255,8 +260,8 @@ function create_ast_struct() {
  * Searches for related nodes and creates association links
  * between 2 adjacent nodes.
  *
- * @param ast {object} AST Tree
- * @param state {object} Parser State
+ * @param {object} ast tree
+ * @param {object} state parser state
  */
 function create_association(ast, state) {
   if (state.block_start || state.inside[DEF]) {
@@ -270,15 +275,15 @@ function create_association(ast, state) {
 
 /**
  * Parses input file path and returns AST result.
- * @return {object}
+ * @param {string} ipath filename
+ * @return {object} ast tree
  */
 async function process_ast(ipath) {
-
   // Stream input into a sizable buffer to work with,
   // Consuming the stream line by line.
   const reader = readline.createInterface({
     input: fs.createReadStream(ipath),
-    console: false
+    console: false,
   });
 
   const ast = await gen_ast(reader);
@@ -287,6 +292,8 @@ async function process_ast(ipath) {
 
 /**
  * Generate an Abstract Syntax Tree from source buffer stream
+ * 
+ * @param {buffer} buffer input
  * @return {object} AST definition
  */
 function gen_ast(buffer) {
@@ -299,14 +306,16 @@ function gen_ast(buffer) {
   // Asyncronously process our buffer into an AST
   const compute = new Promise((resolve, reject) => {
     buffer.on('line', (line) => {
-      if (PANIC) { return; }
-      process_line(ast, state, line)
+      if (PANIC) {
+        return;
+      }
+      process_line(ast, state, line);
     });
 
     buffer.on('close', (fin) => {
       resolve(ast);
     });
-  })
+  });
 
   return compute;
 }
@@ -315,12 +324,11 @@ function gen_ast(buffer) {
  * Handle node insertions.
  * Updates given AST with optional node insertion and data push.
  *
- * @param ast   {object} Abstract Syntax Tree
- * @param state {object} Shared runtime state and config
- * @param line  {string} line being fed in this iteration.
- * @param type  {string} node type identifier, possible options: 'comm' or 'code'.
+ * @param {object} ast Abstract Syntax Tree
+ * @param {object} state Shared runtime state and config
+ * @param {string} type node type identifier, possible options: 'comm' or 'code'.
  *
- * @return node {object} AST Node
+ * @return {object} AST Node
  */
 function process_node(ast, state, type) {
   const ref_type = state.config[type].ref;
@@ -338,7 +346,7 @@ function process_node(ast, state, type) {
     node = create_node(state.lno,
       {
         node_type: type,
-        parent: pnode.id
+        parent: pnode.id,
       });
 
     const inner_id = pnode.inner.length;
@@ -347,17 +355,14 @@ function process_node(ast, state, type) {
     pnode.inner.push(node);
     pnode.index[state.lno] = {
       ind: inner_id,
-      type: type
+      type: type,
     };
-
-  }
-
-  else {
+  } else {
     container = state.config[type].container;
     node = cached_node(ast, index, container, {
       node_type: type,
       assoc_type: ref_type,
-      assoc_id: ref_id
+      assoc_id: ref_id,
     });
   }
 
@@ -373,19 +378,20 @@ function process_node(ast, state, type) {
  * Analyzes current line for tokens.
  * State is then setup dependent on scope and depth.
  *
- * @param ast {object} AST Tree
- * @param state {object} Parser State
+ * @param {object} ast tree
+ * @param {object} state Parser State
+ * @return {null|SKIP}
  */
 function tokenizer(ast, state) {
   const inside = 0 ||
     state.inside[CODE] ||
     state.inside[COMM];
-  // state.inside[DEF];
 
-  if (!inside && state.ln.indexOf("/*") == 0) {
+
+  if (!inside && state.ln.indexOf('/*') == 0) {
     state.current[COMM] = state.lno;
 
-    if (state.ln.indexOf("*/") >= 0) {
+    if (state.ln.indexOf('*/') >= 0) {
       state.closing[COMM] = true;
     } else {
       state.inside[COMM] = true;
@@ -393,39 +399,37 @@ function tokenizer(ast, state) {
     }
   }
 
-  else if (state.inside[COMM] && state.ln.indexOf("*/") >= 0) {
+  // ///////////////////////////////////////////////////////////////////
+  else if (state.inside[COMM] && state.ln.indexOf('*/') >= 0) {
     delete state.inside[COMM];
     state.closing[COMM] = true;
   }
 
   else if (!state.inside[COMM]) {
-
-    if (!state.inside[CODE] && state.ln.indexOf("//") == 0) {
+    
+    // ///////////////////////////////////////////////////////////////////
+    if (!state.inside[CODE] && state.ln.indexOf('//') == 0) {
       state.current[COMM] = state.lno;
       state.closing[COMM] = true;
       state.block_start = true;
-    }
-
-    else if (!state.inside[CODE] && state.ln.indexOf("/*") == 0) {
+    } else if (!state.inside[CODE] && state.ln.indexOf('/*') == 0) {
       state.current[COMM] = state.lno;
 
-      if (state.ln.indexOf("*/") >= 0) {
+      if (state.ln.indexOf('*/') >= 0) {
         state.closing[COMM] = true;
       } else {
         state.block_start = true;
       }
-    }
-
-    else if (!state.inside[DEF] &&
+    } else if (!state.inside[DEF] &&
       !state.ln.match(REGEX.c_fn_decl) &&
       (state.ln.match(REGEX.c_struct_decl) ||
         state.ln.match(REGEX.c_enum_decl))) {
-
       state.inside[DEF] = true;
       state.current[DEF] = state.lno;
       state.block_start = true;
     }
 
+    // ///////////////////////////////////////////////////////////////////
     else if (!state.inside[DEF] && state.ln.match(REGEX.c_fn_decl)) {
       state.current[CODE] = state.lno;
 
@@ -437,19 +441,17 @@ function tokenizer(ast, state) {
         state.block_start = true;
       }
     }
-
+    // ///////////////////////////////////////////////////////////////////
     else if (state.inside[DEF]) {
       if (state.depth == 0) {
-        if (state.ln.indexOf("{") == 0) {
+        if (state.ln.indexOf('{') == 0) {
           insert_index(ast, state, DEF, { node_id: state.lno });
-        }
-
-        else if (state.ln.indexOf("}") >= 0) {
+        } else if (state.ln.indexOf('}') >= 0) {
           insert_index(ast, state, DEF, { node_id: state.lno });
         }
       }
     }
-
+    // ///////////////////////////////////////////////////////////////////
     else if (!inside) {
       insert_index(ast, state, CHAR, { node_id: state.lno });
       return SKIP;
@@ -462,8 +464,8 @@ function tokenizer(ast, state) {
  * Tracks opening and closing of scopes within defined tokens.
  * A main root scope is tracked along with inner scopes.
  *
- * @param ast {object} AST Tree
- * @param state {object} Parser State
+ * @param {object} ast tree
+ * @param {object} state Parser State
 */
 function scope_depths(ast, state) {
   // Detect closing scope depths
@@ -483,16 +485,13 @@ function scope_depths(ast, state) {
           delete state.inside[DEF];
           state.closing[DEF] = true;
         }
-      }
-
-      else if (state.inside[CODE] && state.ln.indexOf('}') >= 0) {
+      } else if (state.inside[CODE] && state.ln.indexOf('}') >= 0) {
         delete state.inside[CODE];
         state.closing[CODE] = true;
       }
-
     } else if (scope_open > scope_close) {
       // Increasing scope depth
-      state.depth++
+      state.depth++;
     }
   }
 }
@@ -500,8 +499,8 @@ function scope_depths(ast, state) {
 /**
 * Iterates scope tracking state, preparing for the next round.
  *
- * @param ast {object} AST Tree
- * @param state {object} Parser State
+ * @param {object} ast Tree
+ * @param {object} state Parser State
 */
 function scope_iterate(ast, state) {
   if (state.closing[DEF]) {
@@ -519,18 +518,25 @@ function scope_iterate(ast, state) {
     state.current[COMM] = null;
   }
 }
-
-function insert_index(ast, state, type, opts) {
-  if (!opts) { opts = {}; }
-
+/**
+ * 
+ * Inserts entry into the index based on current state
+ * and provided {type}
+ * 
+ * @param {object} ast 
+ * @param {object} state 
+ * @param {string} type 
+ * @param {object} opts 
+ */
+function insert_index(ast, state, type, opts = {}) {
   let node_id = opts.node_id;
   if (state.node) {
     node_id = state.node.id;
   }
 
   if (!node_id && node_id != 0) {
-    log.error("invalid state.node:",
-      node_id, type, state.ln, state.lno)
+    log.error('invalid state.node:',
+      node_id, type, state.ln, state.lno);
     process.exit(1);
   }
 
@@ -538,11 +544,13 @@ function insert_index(ast, state, type, opts) {
     node_id: node_id,
     type: type,
     line: state.current_line,
-  }
+  };
 
   if (opts) {
     for (let k in opts) {
-      data[k] = opts[k]
+      if (opts.hasOwnProperty.call(opts, k)) {
+        data[k] = opts[k];
+      }
     }
   }
 
@@ -552,18 +560,18 @@ function insert_index(ast, state, type, opts) {
 /**
  * Processes line state into a node for AST insertion.
  *
- * @param ast {object} AST Tree
- * @param state {object} Parser State
+ * @param {object} ast tree
+ * @param {object} state Parser State
 */
 function insert_node(ast, state) {
   const prev_index = ast.index[state.lno - 1];
-  const prev_line = prev_index && ast.source[state.lno - 1] || "";
+  const prev_line = prev_index && ast.source[state.lno - 1] || '';
 
-  const comm_starting = state.ln.indexOf("/*") == 0;
-  const prev_comm_ended = prev_line.indexOf("*/") >= 0;
+  const comm_starting = state.ln.indexOf('/*') == 0;
+  const prev_comm_ended = prev_line.indexOf('*/') >= 0;
 
   let diff_comm_types;
-  log.cyan("insert_node", state.ln)
+  log.cyan('insert_node', state.ln);
   // Compare the current line against previous line for varying comment types
   if (state.ln.indexOf('//') == 0 && prev_line.indexOf('//') < 0) {
     diff_comm_types = true;
@@ -576,15 +584,12 @@ function insert_node(ast, state) {
       let target = ast[COMM][prev_index.node_id];
 
       if (!target) {
-        log.error("Missing target", state.lno, prev_index.node_id);
+        log.error('Missing target', state.lno, prev_index.node_id);
       }
 
       combine_nodes(ast, target, state.node);
     }
-
-  }
-
-  else if (state.inside[CODE] || state.closing[CODE]) {
+  } else if (state.inside[CODE] || state.closing[CODE]) {
     process_node(ast, state, CODE);
 
     if (prev_index && (prev_index.type == DEF || prev_index.type == CHAR)) {
@@ -593,14 +598,13 @@ function insert_node(ast, state) {
       state.current[CODE] = prev_index.node_id;
       state.previous[CODE] = null;
     }
-  }
-
-  else if (state.inside[DEF] || state.closing[DEF]) {
+  } else if (state.inside[DEF] || state.closing[DEF]) {
     // Combine internal comments
     if (!state.closing[DEF] && (state.inside[COMM] || state.closing[COMM])) {
       process_node(ast, state, COMM);
 
-      if (!prev_comm_ended && !diff_comm_types && prev_index && prev_index.type == COMM) {
+      if (!prev_comm_ended && !diff_comm_types && prev_index &&
+        prev_index.type == COMM) {
         combine_nodes(ast, ast[COMM][prev_index.node_id], state.node);
       }
     }
@@ -608,19 +612,15 @@ function insert_node(ast, state) {
     // Look for internal struct members
     else if (!state.closing[DEF] && !state.block_start &&
       state.ln.length > 1) {
-      console.error("internal struct members:", state.ln)
+      console.error('internal struct members:', state.ln);
       state.current[MEMB] = state.lno;
       process_node(ast, state, MEMB);
       state.current[MEMB] = null;
-    }
-
-    else {
+    } else {
       process_node(ast, state, DEF);
     }
-  }
-
-  else {
-    log.error("non-reachable: unknown state",
+  } else {
+    log.error('non-reachable: unknown state',
       { no: state.lno + 1, line: state.current_line });
   }
 }
@@ -628,10 +628,10 @@ function insert_node(ast, state) {
 /**
  * Transform a node between various node nodes in the tree.
  *
- * @param ast {object} AST object tree
- * @param index {number} Index into AST for the target node
- * @param from {string} Type of node we are transforming
- * @param dst {string} Destination Type for the Node
+ * @param {object} ast object tree
+ * @param {number} index into AST for the target node
+ * @param {string} from - Type of node we are transforming
+ * @param {string} dst - Destination Type for the Node
  *
  * @return {void}
  */
@@ -649,37 +649,24 @@ function transform_node(ast, index, from, dst) {
 /**
  * Combine two adjacent nodes in the tree
  *
- * @param ast {object} AST Tree
- * @param n1 {object} Node 1
- * @param n2 {object} Node 2
+ * @param {object} ast Tree
+ * @param {object} no1 - Node 1
+ * @param {object} no2 - Node 2
  *
  * @return {void}
  */
 function combine_nodes(ast, no1, no2) {
+  let n1;
+  let n2;
+
   if (!no1 || !no1.id && no1.id != 0) {
-    console.trace();
-    log.cyan('no1 ' + no1)
-    debugger;
+    log.error('Missing node.id (no1)');
     process.exit(1);
   }
 
-  const range = no1.id - no2.id;
-  let n1, n2;
-
   // Multiline blocks will run into this scenario.
   if (no1.id === no2.id) {
-    //log.error(`Cannot combine identical nodes: ${no1.id}/${no2.id}`)
-    //PANIC = true;
     return;
-  }
-
-  if (range != -1 && range != 1) {
-    //   log.error(`Invalid Node Range: ${range}`)
-    //   log.error(`Nodes must be adjacent to each other`)
-    //   PANIC = true;
-
-    // TODO: check range consistency for multiline comments,
-    // which appear not to be adjacent but indeedare.
   }
 
   if (no1.id < no2.id) {
@@ -704,54 +691,54 @@ function combine_nodes(ast, no1, no2) {
 
   const container = container_from_type(n2.type);
   if (ast[container][n2.id]) {
-    let existing = ast[container][n2.id];
     delete ast[container][n2.id];
   } else {
-    log.error(`Could not find node inside [${n2.node_type}]`)
+    log.error(`Could not find node inside [${n2.node_type}]`);
   }
 }
 
 /**
  * Finds related nodes preceding the target node for association.
  *
- * @param ast {object} AST Tree to operate on
- * @param state {object} Parser State
- * @param node {object} AST Node object
+ * @param {object} ast - AST Tree to operate on
+ * @param {object} state - Parser State
+ * @param {object} node - AST node object
  *
- * @return match {object} Matched AST node
+ * @return {object} Matched AST node
  */
 function find_common_precedence(ast, state, node) {
-  let match, container;
+  let container;
+  let match;
+
   if (node.type == CODE ||
     node.type == CHAR ||
     node.type == DEF ||
     node.type == MEMB) {
-
     let prev_index = ast.index[node.id - 1];
 
     if (!prev_index) {
-      log.error("invalid prev_index");
+      log.error('invalid prev_index');
       return;
     }
 
-    let prev_comm_id = prev_index.node_id
+    let prev_comm_id = prev_index.node_id;
     let lookup = ast.index[prev_comm_id];
 
     if (lookup && lookup.type == COMM) {
-      container = container_from_type(lookup.type)
+      container = container_from_type(lookup.type);
       match = ast[container][lookup.node_id];
     }
   }
 
-  return match
+  return match;
 }
 
 /**
 * Link two nodes together via recipricol association.
 *
-* @param ast {object} AST Tree to operate on
-* @param node {object} AST Node object
-* @param related {object} AST Node object
+* @param {object} ast - AST Tree to operate on
+* @param {object} node - AST Node object
+* @param {object} related -AST Node object
 *
 * @return {void}
 */
@@ -770,20 +757,16 @@ function associate_nodes(ast, node, related) {
   }
 
   if (ncontains < 0) {
-    node.assocs[ntype].push(related.id)
+    node.assocs[ntype].push(related.id);
   }
 }
 
 /**
  *  Transforms input into AST redirected to stdout.
- *
+ * @param {string} input - file path input
  * @return {boolean} operation success flag
  **/
 async function ast_from_file(input) {
-  let opath = null;
-  let stdout = false;
-  let success = false;
-
   const ipath = resolve(input);
 
   if (!exists(ipath)) {
@@ -792,7 +775,7 @@ async function ast_from_file(input) {
   }
 
   const result = await process_ast(ipath);
-  return success;
+  return result;
 }
 
 /**
@@ -811,5 +794,5 @@ module.exports = {
   DEF,
   MEMB,
   CHAR,
-  NA
-}
+  NA,
+};
