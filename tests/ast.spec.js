@@ -14,14 +14,15 @@ const logger = require('../src/utils').logger;
 const samples = require('./samples');
 
 const Processor = require('../src/processor');
-const gen_ast = Processor.gen_ast;
+const ast_gen = Processor.ast_gen;
+const C = require('../src/constants');
 
-const COMM = Processor.COMM;
-const CODE = Processor.CODE;
-const CHAR = Processor.CHAR;
-const DEF = Processor.DEF;
-const MEMB = Processor.MEMB;
-const NA = Processor.NA;
+const COMM = C.COMM;
+const CODE = C.CODE;
+const CHAR = C.CHAR;
+const DEF = C.DEF;
+const MEMB = C.MEMB;
+const NA = C.NA;
 
 // ////////////////////////////////////////////////////////////////////
 
@@ -35,7 +36,7 @@ const setup = helpers.setup;
 // ////////////////////////////////////////////////////////////////////
 describe('Streaming Input', async () => {
   it('should accept a streaming buffer', async () => {
-    let ast = await gen_ast(setup().input);
+    let ast = await ast_gen(setup().input);
 
     expect(ast).to.have.property('index');
     expect(ast).to.have.property('comments');
@@ -49,15 +50,19 @@ describe('Functions', async () => {
   let ast;
 
   before(async () => {
-    ast = await gen_ast(setup(samples.FUNC).input);
+    ast = await ast_gen(setup(samples.FUNC).input);
   });
 
-  it('should handle function code points', async () => {
+  it('should transform functions into `code` nodes', async () => {
+    log(ast.source)
+    expect(ast.index[3].type).to.equal(CODE);
+    expect(ast.index[4].type).to.equal(CODE);
+
     expect(ast.keys(COMM).length).to.equal(1);
     expect(ast.keys(CODE).length).to.equal(1);
   });
 
-  it('should have valid indexes', async () => {
+  it('should have valid indexes on `code` nodes', async () => {
     expect(ast.index.length).to.equal(ast.source.length);
     expect(ast.index[7].node_id).to.equal(3);
   });
@@ -66,7 +71,7 @@ describe('Functions', async () => {
    * Should backtrace the previous def into a code point,
    * This happens due to CHAR(s) on lines before a code point.
    */
-  it('should handle back tracing transforms', async () => {
+  it('should allow indexing `code` nodes', async () => {
     expect(ast.index[3].type).to.equal('code');
   });
 });
@@ -76,7 +81,7 @@ describe('Structures', async () => {
   let ast;
 
   before(async () => {
-    ast = await gen_ast(setup(samples.STRUCT).input);
+    ast = await ast_gen(setup(samples.STRUCT).input);
   });
 
   it('should associate comments to def members', async () => {
@@ -112,7 +117,7 @@ describe('Structs & Functions Combos', async () => {
   let ast;
 
   before(async () => {
-    ast = await gen_ast(setup(samples.STRUCT_FUNCS).input);
+    ast = await ast_gen(setup(samples.STRUCT_FUNCS).input);
   });
 
   it('should parse CODE,DEF,COMM together', async () => {
@@ -127,7 +132,7 @@ describe('Struct Declarations', async () => {
   let ast;
 
   before(async () => {
-    ast = await gen_ast(setup(samples.STRUCT_DECLS).input);
+    ast = await ast_gen(setup(samples.STRUCT_DECLS).input);
   });
 
   it('should parse a list of declarations', async () => {
@@ -156,7 +161,7 @@ describe('Comment Associations', async () => {
   let ast;
 
   before(async () => {
-    ast = await gen_ast(setup(samples.COMM_SPACES).input);
+    ast = await ast_gen(setup(samples.COMM_SPACES).input);
   });
 
   it('should recognize independent comments', async () => {
@@ -174,7 +179,7 @@ describe('Documentated Function', async () => {
   let ast;
 
   before(async () => {
-    ast = await gen_ast(setup(samples.STRUCT_DOC).input);
+    ast = await ast_gen(setup(samples.STRUCT_DOC).input);
   });
 
   it('should recognize multi-line documentation', async () => {
@@ -190,7 +195,7 @@ describe('Enumerations', async () => {
   let ast;
 
   before(async () => {
-    ast = await gen_ast(setup(samples.ENUMS).input);
+    ast = await ast_gen(setup(samples.ENUMS).input);
   });
 
   it('should recognize multi-line documentation', async () => {
@@ -199,4 +204,22 @@ describe('Enumerations', async () => {
     expect(ast.count(CODE)).to.deep.equal({[CODE]: 0});
     expect(ast.index[78].type).to.deep.equal(NA);
   });
+});
+
+// ////////////////////////////////////////////////////////////////////
+describe('Exotic Enums', async () => {
+  let ast;
+
+  before(async () => {
+      ast = await ast_gen(setup(samples.ENUMS_SINGLE_LINE).input);
+  })
+
+  it('should recognize single-line enum members', async () => {
+      log.h1(ast)
+      expect(ast.count(DEF)).to.deep.equal({[DEF]: 2})
+      expect(ast.count(COMM)).to.deep.equal({[COMM]: 2})
+      expect(ast.inner(9, MEMB).length).to.equal(5)
+      expect(ast.inner(14, COMM).length).to.equal(1)
+  })
+
 });

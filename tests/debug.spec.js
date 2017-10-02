@@ -14,7 +14,7 @@ const expect = chai.expect;
 const Processor = require('../src/processor');
 const logger = require('../src/utils').logger;
 const samples = require('./samples');
-const gen_ast = Processor.gen_ast;
+const ast_gen = Processor.ast_gen;
 
 const COMM = Processor.COMM;
 const CODE = Processor.CODE;
@@ -29,6 +29,7 @@ const NA = Processor.NA;
 const log = logger('spec');
 const helpers = require('./test_helper');
 const setup = helpers.setup;
+const C = require('../src/constants');
 
 //////////////////////////////////////////////////////////////////////
 
@@ -36,15 +37,18 @@ describe('Exotic Enums', async () => {
     let ast;
 
     before(async () => {
-        ast = await gen_ast(setup(samples.ENUMS_SINGLE_LINE).input);
-    })
+        ast = await ast_gen(setup(samples.FUNC).input);
+    });
 
-    it('should recognize single-line enum members', async () => {
-        log.h1(ast)
-        expect(ast.count(DEF)).to.deep.equal({[DEF]: 2})
-        expect(ast.count(COMM)).to.deep.equal({[COMM]: 2})
-        expect(ast.inner(9, MEMB).length).to.equal(5)
-        expect(ast.inner(14, COMM).length).to.equal(1)
-    })
+    it('should transform functions into `code` nodes', async () => {
+        log('DEF', ast[DEF]);
+        // log('CODE', ast[CODE]);
+
+        expect(ast.index[3].type).to.equal(C.CODE);
+        expect(ast.index[4].type).to.equal(C.CODE);
+
+        expect(ast.keys(COMM).length).to.equal(1);
+        expect(ast.keys(CODE).length).to.equal(1);
+    });
 
 });

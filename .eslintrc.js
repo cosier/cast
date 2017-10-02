@@ -10,7 +10,7 @@ module.exports = {
   "rules": {
     "camelcase": 0,
     "no-console": 0,
-    "brace-style": "stroustrup"
+    "brace-style": { "properties": "stroustrup" }
   },
   "globals": {
     "require": true,

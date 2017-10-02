@@ -13,6 +13,55 @@ const COLOURS = {
   cyan: 36
 }
 
+function colorize(colour, ...items) {
+  const clr = COLOURS[colour];
+  const start = `\u001b[${clr}m`;
+  const end = '\u001b[0m';
+  const id = this.id || '';
+
+  console.log(`${id}${start}`);
+
+  for (let item of items) {
+    if (item === undefined) item = 'undefined';
+    console.log(util.inspect(item, { depth: 10, colors: true }));
+  }
+
+  console.log(end);
+}
+
+function hilighter(colour) {
+  return (...items) => {
+    colorize(colour, ...items);
+  }
+}
+
+function create_base_logger(id) {
+  let base = (...items)=> {
+    let opts = [
+      'blue', ...items
+    ];
+    colorize.apply({ id }, opts);
+  };
+
+  // Wraps errs in bright red
+  base.error = hilighter('red');
+
+  // Custom colour wrapper unlimited arg support
+  base.colour = colorize;
+
+  base.grn = hilighter('green');
+  base.yell = hilighter('yellow');
+  base.blue = hilighter('blue');
+  base.cyan = hilighter('cyan');
+  base.pink = hilighter('pink');
+
+  // Highlight helper
+  base.h1 = base.grn;
+  base.h2 = base.cyan;
+
+  return base;
+}
+
 /**
  * Build a beautiful logging wrapper.
  * Supports formatting and coloured output
@@ -21,59 +70,7 @@ const COLOURS = {
  * @return {function} wrapped logging functor
  */
 const logger = (name)=> {
-  let id = `[${name}]`;
-  let log = (...items)=> {
-    console.log(id, ...items)
-  };
-
-  // Wraps errs in bright red
-  log.error = (...errs) => {
-    const start = `\u001b[${COLOURS['red']}m`;
-    const end = '\u001b[0m';
-    console.error(`${start}${id}`, ...errs, end)
-  };
-
-  // Custom colour wrapper unlimited arg support
-  log.colour = (colour, ...items) => {
-    const clr = COLOURS[colour];
-    const start = `\u001b[${clr}m`;
-    const end = '\u001b[0m';
-
-    console.log(`${id} ${start}`);
-
-    for (let item of items) {
-      if (item === undefined) item = 'undefined';
-      console.log(util.inspect(item, { depth: 10 }));
-    }
-
-    console.log(end);
-  }
-
-  log.grn = (...line) => {
-    log.colour('green', ...line);
-  }
-
-  log.yell = (...line) => {
-    log.colour('yellow', ...line);
-  }
-
-  log.blue = (...line) => {
-    log.colour('blue', ...line);
-  }
-
-  log.cyan = (...line) => {
-    log.colour('cyan', ...line);
-  }
-
-  log.pink = (...line) => {
-    log.colour('pink', ...line);
-  }
-
-  // Highlight helper
-  log.h1 = log.grn;
-  log.h2 = log.cyan;
-
-  return log;
+  return create_base_logger(`[${name}] `);
 }
 
 module.exports = { logger: logger }
