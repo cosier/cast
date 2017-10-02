@@ -53,7 +53,7 @@ function process_line(ast, state, line) {
   // /////////////////////////////////////////////
   // Ignore non-applicable lines
   if (!state.inside[C.COMM] && (state.ln.indexOf('#') == 0 || state.ln == '')) {
-    insert_index(ast, state, C.NA, { node_id: state.lno });
+    node.index(ast, state, C.NA, { node_id: state.lno });
     // Clear C.COMMent tracking as we have introduced an association break
     state.previous[C.COMM] = null;
     return;

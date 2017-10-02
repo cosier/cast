@@ -77,8 +77,7 @@ function index(ast, state, type, opts = {}) {
     }
 
     if (!node_id && node_id != 0) {
-        log.error('invalid state.node:',
-            node_id, type, state.ln, state.lno);
+        log.error('invalid state.node:', node_id, type, state.ln, state.lno);
         process.exit(1);
     }
 
@@ -130,7 +129,9 @@ function insert(ast, state) {
 
             combine(ast, target, state.node);
         }
-    } else if (state.inside[C.CODE] || state.closing[C.CODE]) {
+    }
+
+    else if (state.inside[C.CODE] || state.closing[C.CODE]) {
         process(ast, state, C.CODE);
 
         if (prev_index && (prev_index.type == C.DEF || prev_index.type == C.CHAR)) {
@@ -139,7 +140,9 @@ function insert(ast, state) {
             state.current[C.CODE] = prev_index.node_id;
             state.previous[C.CODE] = null;
         }
-    } else if (state.inside[C.DEF] || state.closing[C.DEF]) {
+    }
+
+    else if (state.inside[C.DEF] || state.closing[C.DEF]) {
         // Combine internal C.COMMents
         if (!state.closing[C.DEF] && (state.inside[C.COMM] || state.closing[C.COMM])) {
             process(ast, state, C.COMM);
@@ -159,7 +162,9 @@ function insert(ast, state) {
         } else {
             process(ast, state, C.DEF);
         }
-    } else {
+    }
+
+    else {
         log.error('non-reachable: unknown state',
             { no: state.lno + 1, line: state.current_line });
     }

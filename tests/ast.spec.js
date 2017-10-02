@@ -20,7 +20,7 @@ const C = require('../src/constants');
 const COMM = C.COMM;
 const CODE = C.CODE;
 const CHAR = C.CHAR;
-const DEF = C.DEF;
+const DEF  = C.DEF;
 const MEMB = C.MEMB;
 const NA = C.NA;
 
@@ -54,7 +54,6 @@ describe('Functions', async () => {
   });
 
   it('should transform functions into `code` nodes', async () => {
-    log(ast.source)
     expect(ast.index[3].type).to.equal(CODE);
     expect(ast.index[4].type).to.equal(CODE);
 
@@ -63,8 +62,12 @@ describe('Functions', async () => {
   });
 
   it('should have valid indexes on `code` nodes', async () => {
-    expect(ast.index.length).to.equal(ast.source.length);
+    expect(ast.index[3].type).to.equal(C.CODE);
+    expect(ast.index[4].node_id).to.equal(3);
+    expect(ast.index[5].node_id).to.equal(3);
+    expect(ast.index[6].node_id).to.equal(3);
     expect(ast.index[7].node_id).to.equal(3);
+    expect(ast.index[8].node_id).to.equal(3);
   });
 
   /**
@@ -215,7 +218,6 @@ describe('Exotic Enums', async () => {
   })
 
   it('should recognize single-line enum members', async () => {
-      log.h1(ast)
       expect(ast.count(DEF)).to.deep.equal({[DEF]: 2})
       expect(ast.count(COMM)).to.deep.equal({[COMM]: 2})
       expect(ast.inner(9, MEMB).length).to.equal(5)

@@ -39,8 +39,6 @@ function tokenizer(ast, state) {
     state.inside[C.CODE] ||
     state.inside[C.COMM];
 
-  log(`depth: ${state.depth} -> ${state.ln}`)
-
   if (!inside && state.ln.indexOf('/*') == 0) {
     state.current[C.COMM] = state.lno;
 
@@ -52,54 +50,42 @@ function tokenizer(ast, state) {
     }
   }
 
+  else if (!state.inside[C.CODE] && state.ln.indexOf('//') == 0) {
+    state.current[C.COMM] = state.lno;
+    state.closing[C.COMM] = true;
+    state.block_start = true;
+  }
+
   else if (state.inside[C.COMM] && state.ln.indexOf('*/') >= 0) {
     delete state.inside[C.COMM];
     state.closing[C.COMM] = true;
   }
 
   else if (!state.inside[C.COMM]) {
-    tokenize_code(ast, state);
+    return tokenize_code(ast, state);
   }
 }
 
 /**
  *  Tokenize code and definition structures
- * @param {AST} ast 
- * @param {State} state 
+ * @param {AST} ast
+ * @param {State} state
  */
 function tokenize_code(ast, state) {
-  // ///////////////////////////////////////////////////////////////////
-  if (!state.inside[C.CODE] && state.ln.indexOf('//') == 0) {
-    state.current[C.COMM] = state.lno;
-    state.closing[C.COMM] = true;
-    state.block_start = true;
-  }
+  const in_def = state.inside[C.DEF];
+  const in_code = state.inside[C.CODE];
 
-  // ///////////////////////////////////////////////////////////////////
-  else if (!state.inside[C.CODE] && state.ln.indexOf('/*') == 0) {
-    state.current[C.COMM] = state.lno;
+  const match_func = state.ln.match(REGEX.c_fn_decl);
+  const match_struct = state.ln.match(REGEX.c_struct_decl);
+  const match_enum = state.ln.match(REGEX.c_enum_decl);
 
-    if (state.ln.indexOf('*/') >= 0) {
-      state.closing[C.COMM] = true;
-    } else {
-      state.block_start = true;
-    }
-  }
-
-  // ///////////////////////////////////////////////////////////////////
-  else if (!state.inside[C.DEF] &&
-    !state.ln.match(REGEX.c_fn_decl) &&
-    (state.ln.match(REGEX.c_struct_decl) ||
-      state.ln.match(REGEX.c_enum_decl))) {
-
+  if (!in_def && !match_func && (match_struct || match_enum)) {
     state.current[C.DEF] = state.lno;
     state.inside[C.DEF] = true;
     state.block_start = true;
-
   }
 
-  // ///////////////////////////////////////////////////////////////////
-  else if (!state.inside[C.DEF] && state.ln.match(REGEX.c_fn_decl)) {
+  else if (!in_def && match_func) {
     state.current[C.CODE] = state.lno;
 
     // Handle one line declarations
@@ -110,18 +96,37 @@ function tokenize_code(ast, state) {
       state.block_start = true;
     }
   }
-  // ///////////////////////////////////////////////////////////////////
-  else if (state.inside[C.DEF]) {
+
+  else if (in_def) {
     if (state.depth == 0) {
       if (state.ln.indexOf('{') == 0) {
         node.index(ast, state, C.DEF, { node_id: state.lno });
-      } else if (state.ln.indexOf('}') >= 0) {
+      }
+
+      else if (state.ln.indexOf('}') >= 0) {
         node.index(ast, state, C.DEF, { node_id: state.lno });
+      }
+
+      // Transform partial DEF into CODE node if partial function signature match
+      else if (match_func) {
+        node.transform(ast, state.current[C.DEF], C.DEF, C.CODE);
+
+        state.current[C.CODE] = state.current[C.DEF];
+        state.previous[C.CODE] = state.previous[C.DEF];
+        state.inside[C.CODE] = true;
+
+        delete state.previous[C.DEF];
+        delete state.current[C.DEF];
+        delete state.inside[C.DEF];
       }
     }
   }
-  // ///////////////////////////////////////////////////////////////////
-  else if (!inside) {
+
+  else if (in_code) {
+    
+  }
+
+  else {
     node.index(ast, state, C.CHAR, { node_id: state.lno });
     return C.SKIP;
   }
