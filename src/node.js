@@ -5,8 +5,12 @@
  * @author Bailey Cosier <bailey@cosier.ca>
  * @license MIT
  */
-
+const logger = require('./utils').logger;
 const C = require('./constants');
+/**
+ * Utility log namespaced helper
+ */
+const log = logger('node');
 
 /**
  * Create new textual node representation for the AST.
@@ -153,7 +157,7 @@ function insert(ast, state) {
             }
         }
 
-        // Look for internal struct C.MEMBers
+        // Look for internal struct members
         else if (!state.closing[C.DEF] && !state.block_start &&
             state.ln.length > 1) {
             state.current[C.MEMB] = state.lno;
@@ -168,6 +172,29 @@ function insert(ast, state) {
         log.error('non-reachable: unknown state',
             { no: state.lno + 1, line: state.current_line });
     }
+}
+
+function inner(ast, state, pnode, type) {
+    const node = create(state.lno,
+        {
+            node_type: type,
+            parent: pnode.id,
+        });
+
+    const inner_id = pnode.inner.length;
+    const ln = state.current_line;
+
+    pnode.inner.push(node);
+    pnode.index[state.lno] = {
+        ind: inner_id,
+        type: type,
+    };
+
+    if (ln.indexOf("/*") >= 0 || ln.indexOf("//") >= 0) {
+        log.error(ln);
+    }
+
+    return node;
 }
 
 /**
@@ -192,21 +219,9 @@ function process(ast, state, type) {
     if (type == C.MEMB) {
         const pnode = ast.node(state.current[C.DEF]);
         index_data.parent = pnode.id;
+        index_data.ind = pnode.inner.length;
+        node = inner(ast, state, pnode, type);
 
-        node = create(state.lno,
-            {
-                node_type: type,
-                parent: pnode.id,
-            });
-
-        const inner_id = pnode.inner.length;
-        index_data.ind = inner_id;
-
-        pnode.inner.push(node);
-        pnode.index[state.lno] = {
-            ind: inner_id,
-            type: type,
-        };
     } else {
         container = state.config[type].container;
         node = cached(ast, ind, container, {

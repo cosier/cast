@@ -23,7 +23,7 @@ function colorize(colour, ...items) {
 
   for (let item of items) {
     if (item === undefined) item = 'undefined';
-    console.log(util.inspect(item, { depth: 10, colors: true }));
+    console.log(util.inspect(item, { depth: 10 }));
   }
 
   console.log(end);
