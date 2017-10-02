@@ -239,7 +239,7 @@ function create_ast_struct() {
     
     if (type == MEMB) {
       const p = ast.node(index.parent)
-      return p.inner[index.inner_id];
+      return p.inner[index.ind];
     } 
     
     else {
@@ -342,11 +342,11 @@ function process_node(ast, state, type) {
       });
 
     const inner_id = pnode.inner.length;
-    index_data.inner_id = inner_id;
+    index_data.ind = inner_id;
 
     pnode.inner.push(node);
     pnode.index[state.lno] = {
-      in: inner_id,
+      ind: inner_id,
       type: type
     };
 

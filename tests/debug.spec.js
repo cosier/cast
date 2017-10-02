@@ -4,7 +4,7 @@
  * Used for one off test examination
  *
  * @name debug.spec.js
- * @author Bailey Cosier <bailey@cosier.ca
+ * @author Bailey Cosier <bailey@cosier.ca>
  * @license MIT
  */
 
