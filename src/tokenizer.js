@@ -99,16 +99,16 @@ function tokenize_code(ast, state) {
 
   else if (in_def) {
     if (state.depth == 0) {
-      if (state.ln.indexOf('{') == 0) {
-        node.index(ast, state, C.DEF, { node_id: state.lno });
-      }
+      // if (state.ln.indexOf('{') == 0) {
+        // node.index(ast, state, C.DEF, { node_id: state.lno });
+      // }
 
-      else if (state.ln.indexOf('}') >= 0) {
-        node.index(ast, state, C.DEF, { node_id: state.lno });
-      }
+      // else if (state.ln.indexOf('}') >= 0) {
+        // node.index(ast, state, C.DEF, { node_id: state.lno });
+      // }
 
       // Transform partial DEF into CODE node if partial function signature match
-      else if (match_func) {
+      if (match_func) {
         node.transform(ast, state.current[C.DEF], C.DEF, C.CODE);
 
         state.current[C.CODE] = state.current[C.DEF];
@@ -127,8 +127,7 @@ function tokenize_code(ast, state) {
   }
 
   else {
-    node.index(ast, state, C.CHAR, { node_id: state.lno });
-    return C.SKIP;
+    // node.index(ast, state, C.CHAR, { node_id: state.lno });
   }
 }
 

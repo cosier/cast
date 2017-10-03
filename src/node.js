@@ -170,8 +170,8 @@ function insert(ast, state) {
     }
 
     else {
-        log.error('non-reachable: unknown state',
-            { no: state.lno + 1, line: state.current_line });
+        state.current[C.CHAR] = state.lno;
+        process(ast, state, C.CHAR);
     }
 }
 

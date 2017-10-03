@@ -249,6 +249,7 @@ NK_API const struct nk_command* nk__next(struct nk_context*, const struct nk_com
 *      @ctx must point to an previously initialized \`nk_context\` struct at the end of a frame
 *      @cmd pointer initialized to NULL */
 #define nk_foreach(c, ctx) for((c) = nk__begin(ctx); (c) != 0; (c) = nk__next(ctx,c))
+// common for NK_INCLUDE_VERTEX_BUFFER_OUTPUT
 #ifdef NK_INCLUDE_VERTEX_BUFFER_OUTPUT
 /*  nk_convert - converts all internal draw command into vertex draw commands and fills
 *  three buffers with vertexes, vertex draw commands and vertex indices. The vertex format
@@ -260,7 +261,8 @@ NK_API const struct nk_command* nk__next(struct nk_context*, const struct nk_com
 *      @vertices must point to a previously initialized buffer to hold all produced vertices
 *      @elements must point to a previously initialized buffer to hold all produced vertex indices
 *      @config must point to a filled out \`nk_config\` struct to configure the conversion process
-*  Returns:
+*  Returns:NK_API nk_flags nk_convert(struct nk_context*, struct nk_buffer *cmds, struct nk_buffer *vertices, struct nk_buffer *elements, const struct nk_convert_config*);
+
 *      returns NK_CONVERT_SUCCESS on success and a enum nk_convert_result error values if not */
 NK_API nk_flags nk_convert(struct nk_context*, struct nk_buffer *cmds, struct nk_buffer *vertices, struct nk_buffer *elements, const struct nk_convert_config*);
 `;

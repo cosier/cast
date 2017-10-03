@@ -42,8 +42,7 @@ describe('Debugging', async () => {
 
     it('should recognize macros', async () => {
         log(ast);
-        expect(ast.count(COMM)).to.deep.equal({ [COMM]: 3 })
-
+        expect(ast.count(COMM)).to.deep.equal({ [COMM]: 4 })
     })
 
 });

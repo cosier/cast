@@ -52,18 +52,16 @@ function process_line(ast, state, line) {
 
   // /////////////////////////////////////////////
   // Ignore non-applicable lines
-  if (!state.inside[C.COMM] && (state.ln.indexOf('#') == 0 || state.ln == '')) {
-    node.index(ast, state, C.NA, { node_id: state.lno });
-    // Clear C.COMMent tracking as we have introduced an association break
-    state.previous[C.COMM] = null;
-    return;
-  }
+  // if (!state.inside[C.COMM] && (state.ln.indexOf('#') == 0 || state.ln == '')) {
+  //   node.index(ast, state, C.NA, { node_id: state.lno });
+  //   // Clear C.COMMent tracking as we have introduced an association break
+  //   state.previous[C.COMM] = null;
+  //   return;
+  // }
 
   // /////////////////////////////////////////////
   // Detect tokens
-  if (tokenizer(ast, state) == C.SKIP) {
-    return;
-  }
+  tokenizer(ast, state);
 
   // /////////////////////////////////////////////
   // Process scope depths
@@ -103,6 +101,7 @@ function create_state() {
       [C.CODE]: { ref: C.COMM, container: C.CODE },
       [C.MEMB]: { ref: C.DEF, container: C.DEF },
       [C.DEF]: { ref: C.COMM, container: C.DEF },
+      [C.CHAR]: { ref: C.COMM, container: C.CHAR },
     },
   };
 }
@@ -117,6 +116,7 @@ function create_ast_struct() {
     [C.COMM]: {},
     [C.CODE]: {},
     [C.DEF]: {},
+    [C.CHAR]: {},
     index: {},
   };
 
