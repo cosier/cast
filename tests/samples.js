@@ -236,6 +236,35 @@ enum nk_convert_result {
 };
 `
 
+const MACROS = `
+/*  nk__next - Returns a draw command list iterator to iterate all draw
+*  Parameters:
+*      @ctx must point to an previously initialized \`nk_context\` struct at the end of a frame
+*      @cmd must point to an previously a draw command either returned by \`nk__begin\` or \`nk__next\`
+*  Return values:
+*      draw command pointer pointing to the next command inside the draw command list  */
+NK_API const struct nk_command* nk__next(struct nk_context*, const struct nk_command*);
+/*  nk_foreach - Iterates over each draw command inside the context draw command list
+*  Parameters:
+*      @ctx must point to an previously initialized \`nk_context\` struct at the end of a frame
+*      @cmd pointer initialized to NULL */
+#define nk_foreach(c, ctx) for((c) = nk__begin(ctx); (c) != 0; (c) = nk__next(ctx,c))
+#ifdef NK_INCLUDE_VERTEX_BUFFER_OUTPUT
+/*  nk_convert - converts all internal draw command into vertex draw commands and fills
+*  three buffers with vertexes, vertex draw commands and vertex indices. The vertex format
+*  as well as some other configuration values have to be configured by filling out a
+*  \`nk_convert_config\` struct.
+*  Parameters:
+*      @ctx must point to an previously initialized \`nk_context\` struct at the end of a frame
+*      @cmds must point to a previously initialized buffer to hold converted vertex draw commands
+*      @vertices must point to a previously initialized buffer to hold all produced vertices
+*      @elements must point to a previously initialized buffer to hold all produced vertex indices
+*      @config must point to a filled out \`nk_config\` struct to configure the conversion process
+*  Returns:
+*      returns NK_CONVERT_SUCCESS on success and a enum nk_convert_result error values if not */
+NK_API nk_flags nk_convert(struct nk_context*, struct nk_buffer *cmds, struct nk_buffer *vertices, struct nk_buffer *elements, const struct nk_convert_config*);
+`;
+
 const SAMPLES = {
   STRUCT_FUNCS,
   STRUCT_DECLS,
@@ -244,7 +273,8 @@ const SAMPLES = {
   FUNC,
   COMM_SPACES,
   ENUMS,
-  ENUMS_SINGLE_LINE
+  ENUMS_SINGLE_LINE,
+  MACROS
 };
 
 module.exports = SAMPLES;

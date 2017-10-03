@@ -33,18 +33,17 @@ const setup = helpers.setup;
 
 //////////////////////////////////////////////////////////////////////
 
-describe('Exotic Enums', async () => {
+describe('Debugging', async () => {
     let ast;
 
     before(async () => {
-        ast = await ast_gen(setup(samples.ENUMS_SINGLE_LINE).input);
+        ast = await ast_gen(setup(samples.MACROS).input);
     })
 
-    it('should recognize single-line enum members', async () => {
-        expect(ast.count(DEF)).to.deep.equal({[DEF]: 2})
-        expect(ast.count(COMM)).to.deep.equal({[COMM]: 2})
-        expect(ast.inner(9, MEMB).length).to.equal(5)
-        expect(ast.inner(14, COMM).length).to.equal(1)
+    it('should recognize macros', async () => {
+        log(ast);
+        expect(ast.count(COMM)).to.deep.equal({ [COMM]: 3 })
+
     })
 
 });
