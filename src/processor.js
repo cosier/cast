@@ -53,8 +53,8 @@ function process_line(ast, state, line) {
   // /////////////////////////////////////////////
   // Ignore non-applicable lines
   if (!state.inside[C.COMM] && state.ln == '') {
-    // Clear comment tracking as we have introduced an association break
-    state.previous[C.COMM] = null;
+    // Clear prev tracking as we have introduced an association break
+    state.previous = {};
   }
 
   // /////////////////////////////////////////////

@@ -88,7 +88,7 @@ function index(ast, state, type, opts = {}) {
     const data = {
         node_id: node_id,
         type: type,
-        line: state.ln,
+        // line: state.ln,
         sub: []
     };
 
