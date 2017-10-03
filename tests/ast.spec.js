@@ -205,7 +205,8 @@ describe('Enumerations', async () => {
     expect(ast.count(DEF)).to.deep.equal({[DEF]: 2});
     expect(ast.count(COMM)).to.deep.equal({[COMM]: 6});
     expect(ast.count(CODE)).to.deep.equal({[CODE]: 0});
-    expect(ast.index[78].type).to.deep.equal(NA);
+    log(ast)
+    expect(ast.index[78].type).to.equal(DEF);
   });
 });
 
@@ -229,7 +230,19 @@ describe('Exotic Enums', async () => {
       
       expect(ast.node(14).index['14.1']).to.deep.equal({ind: 0, type: COMM})
       expect(ast.node(14).inner[0].type).to.equal(COMM)
-      log(ast);
+  })
+});
+
+describe('Macros', async () => {
+  let ast;
+
+  before(async () => {
+      ast = await ast_gen(setup(samples.MACROS).input);
   })
 
+  it('should recognize macros', async () => {
+      expect(ast.count(COMM)).to.deep.equal({ [COMM]: 4 })
+      expect(ast.count(CODE)).to.deep.equal({ [CODE]: 3 })
+      expect(ast.count(CHAR)).to.deep.equal({ [CHAR]: 1 })
+  })
 });

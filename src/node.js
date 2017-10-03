@@ -88,7 +88,7 @@ function index(ast, state, type, opts = {}) {
     const data = {
         node_id: node_id,
         type: type,
-        // line: state.ln,
+        line: state.ln,
         sub: []
     };
 
@@ -171,6 +171,7 @@ function insert(ast, state) {
 
     else {
         state.current[C.CHAR] = state.lno;
+        state.closing[C.CHAR] = true;
         process(ast, state, C.CHAR);
     }
 }

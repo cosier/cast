@@ -54,17 +54,22 @@ function depths(ast, state) {
   function iterate(ast, state) {
     if (state.closing[C.DEF]) {
       state.previous[C.DEF] = state.current[C.DEF];
-      state.current[C.DEF] = null;
+      delete state.current[C.DEF];
     }
   
     if (state.closing[C.CODE]) {
       state.previous[C.CODE] = state.current[C.CODE];
-      state.current[C.CODE] = null;
+      delete state.current[C.CODE];
     }
   
     if (state.closing[C.COMM]) {
       state.previous[C.COMM] = state.current[C.COMM];
-      state.current[C.COMM] = null;
+      delete state.current[C.COMM];
+    }
+
+    if (state.closing[C.CHAR]) {
+      state.previous[C.CHAR] = state.current[C.CHAR];
+      delete state.current[C.CHAR];
     }
   }
 

@@ -236,8 +236,8 @@ enum nk_convert_result {
 };
 `
 
-const MACROS = `
-/*  nk__next - Returns a draw command list iterator to iterate all draw
+const MACROS = 
+`/*  nk__next - Returns a draw command list iterator to iterate all draw
 *  Parameters:
 *      @ctx must point to an previously initialized \`nk_context\` struct at the end of a frame
 *      @cmd must point to an previously a draw command either returned by \`nk__begin\` or \`nk__next\`

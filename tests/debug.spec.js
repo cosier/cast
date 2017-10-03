@@ -44,5 +44,4 @@ describe('Debugging', async () => {
         log(ast);
         expect(ast.count(COMM)).to.deep.equal({ [COMM]: 4 })
     })
-
 });
