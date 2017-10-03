@@ -183,7 +183,7 @@ function insert(ast, state) {
  * @param {Node} node containing extractable comment
  */
 function extract_inner_comment(ast, node, subline = 0) {
-    const ln = node.data[subline];
+    const ln = node.data[subline].ln;
     const pos = parseInt(node.id) + subline;
 
     let ctype = "//";
@@ -205,7 +205,7 @@ function extract_inner_comment(ast, node, subline = 0) {
         parent: node.id,
     });
 
-    cnode.data.push(comm);
+    cnode.data.push({ no: node.id, ln: comm });
     node.inner.push(cnode);
 
     node.index[cnode.id] = { ind: cid, type: C.COMM }
@@ -243,7 +243,7 @@ function inner(ast, state, pnode, type) {
         type: type,
     };
 
-    node.data.push(ln);
+    node.data.push({no: state.lno, ln});
 
     // Scan for sub line comments: indexed > 1
     if (ln.indexOf("/*") >= 1 || ln.indexOf("//") >= 1) {
@@ -286,7 +286,7 @@ function process(ast, state, type) {
             assoc_id: ref_id,
         });
 
-        node.data.push(state.current_line);
+        node.data.push({no: state.lno, ln: state.current_line });
     }
 
     state.node = node;
