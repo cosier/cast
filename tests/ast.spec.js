@@ -219,9 +219,17 @@ describe('Exotic Enums', async () => {
 
   it('should recognize single-line enum members', async () => {
       expect(ast.count(DEF)).to.deep.equal({[DEF]: 2})
-      expect(ast.count(COMM)).to.deep.equal({[COMM]: 2})
+      expect(ast.count(COMM)).to.deep.equal({[COMM]: 3})
+
       expect(ast.inner(9, MEMB).length).to.equal(5)
       expect(ast.inner(14, COMM).length).to.equal(1)
+
+      expect(ast.index['14.1'].type).to.equal(COMM)
+      expect(ast.index['14.1'].parent).to.equal(14)
+      
+      expect(ast.node(14).index['14.1']).to.deep.equal({ind: 0, type: COMM})
+      expect(ast.node(14).inner[0].type).to.equal(COMM)
+      log(ast);
   })
 
 });

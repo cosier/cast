@@ -88,7 +88,8 @@ function index(ast, state, type, opts = {}) {
     const data = {
         node_id: node_id,
         type: type,
-        line: state.current_line,
+        // line: state.ln,
+        sub: []
     };
 
     if (opts) {
@@ -147,7 +148,7 @@ function insert(ast, state) {
     }
 
     else if (state.inside[C.DEF] || state.closing[C.DEF]) {
-        // Combine internal C.COMMents
+        // Combine internal comments
         if (!state.closing[C.DEF] && (state.inside[C.COMM] || state.closing[C.COMM])) {
             process(ast, state, C.COMM);
 
@@ -174,6 +175,57 @@ function insert(ast, state) {
     }
 }
 
+/**
+ * Extract inner comment from  a node sub member.
+ *
+ * @param {AST} ast master ast tree
+ * @param {Node} node containing extractable comment
+ */
+function extract_inner_comment(ast, node, subline = 0) {
+    const ln = node.data[subline];
+    const pos = parseInt(node.id) + subline;
+
+    let ctype = "//";
+    if (ln.indexOf("/*") >= 0) {
+        ctype = "/*";
+    }
+
+    const extract = ln.split(ctype)
+    const data = extract[0];
+    const comm = ctype + extract[1];
+
+    node.data[subline] = data;
+    cid = node.inner.length;
+
+    cnode = create(`${pos}.${cid + 1}`, {
+        node_type: C.COMM,
+        assoc_type: node.type,
+        assoc_id: node.id,
+        parent: node.id,
+    });
+
+    cnode.data.push(comm);
+    node.inner.push(cnode);
+
+    node.index[cnode.id] = { ind: cid, type: C.COMM }
+
+    ast[C.COMM][cnode.id] = cnode;
+    ast.index[cnode.id] = { 
+        node_id: cnode.id,
+        type: C.COMM,
+        // line: cnode.data[0],
+        parent: node.id,
+        ind: cid,
+    }
+}
+
+/**
+ * Process inner nodes, ie. members of a struct
+ * @param {*} ast
+ * @param {*} state
+ * @param {*} pnode
+ * @param {*} type
+ */
 function inner(ast, state, pnode, type) {
     const node = create(state.lno,
         {
@@ -182,7 +234,7 @@ function inner(ast, state, pnode, type) {
         });
 
     const inner_id = pnode.inner.length;
-    const ln = state.current_line;
+    let ln = state.current_line;
 
     pnode.inner.push(node);
     pnode.index[state.lno] = {
@@ -190,8 +242,11 @@ function inner(ast, state, pnode, type) {
         type: type,
     };
 
-    if (ln.indexOf("/*") >= 0 || ln.indexOf("//") >= 0) {
-        log.error(ln);
+    node.data.push(ln);
+
+    // Scan for sub line comments: indexed > 1
+    if (ln.indexOf("/*") >= 1 || ln.indexOf("//") >= 1) {
+        extract_inner_comment(ast, node)
     }
 
     return node;
@@ -229,10 +284,11 @@ function process(ast, state, type) {
             assoc_type: ref_type,
             assoc_id: ref_id,
         });
+
+        node.data.push(state.current_line);
     }
 
     state.node = node;
-    state.node.data.push(state.current_line);
     state.previous[ref_type] = null;
 
     index(ast, state, type, index_data);
