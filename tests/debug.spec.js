@@ -11,9 +11,9 @@
 const chai = require('chai')
 const expect = chai.expect;
 
-const C = require('../src/constants');
-const Processor = require('../src/processor');
-const logger = require('../src/utils').logger;
+const C = require('../lib/constants');
+const Processor = require('../lib/abstractor');
+const logger = require('../lib/utils').logger;
 const samples = require('./samples');
 const ast_gen = Processor.ast_gen;
 
@@ -41,7 +41,6 @@ describe('Debugging', async () => {
     })
 
     it('should recognize macros', async () => {
-        log(ast);
         expect(ast.count(COMM)).to.deep.equal({ [COMM]: 4 })
     })
 });

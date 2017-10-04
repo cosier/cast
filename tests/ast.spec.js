@@ -3,19 +3,19 @@
  * Tests for AST Generation & Transformation
  *
  * @name ast.spec.js
- * @author Bailey Cosier <bailey@cosier.ca
+ * @author Bailey Cosier <bailey@cosier.ca>
  * @license MIT
  */
 
 const chai = require('chai');
 const expect = chai.expect;
 
-const logger = require('../src/utils').logger;
+const logger = require('../lib/utils').logger;
 const samples = require('./samples');
 
-const Processor = require('../src/processor');
+const Processor = require('../lib/abstractor');
 const ast_gen = Processor.ast_gen;
-const C = require('../src/constants');
+const C = require('../lib/constants');
 
 const COMM = C.COMM;
 const CODE = C.CODE;
@@ -186,8 +186,6 @@ describe('Documentated Function', async () => {
   });
 
   it('should recognize multi-line documentation', async () => {
-    // log.cyan(ast);
-    // expect(ast.keys(COMM).length).to.equal(1)
     expect(ast.keys(CODE).length).to.equal(1);
   });
 });

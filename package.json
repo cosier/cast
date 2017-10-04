@@ -1,11 +1,11 @@
 {
   "name": "c-ast",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": "Bailey Cosier",
   "homepage": "https://github.com/cosier/cast#readme",
   "description": "Ansi C AST Generator",
   "license": "MIT",
-  "main": "src/index.js",
+  "main": "index.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/cosier/cast.git"
@@ -62,7 +62,7 @@
       }
     },
     "lint": {
-      "command": "$(npm bin)/eslint -c .eslintrc.js tests src",
+      "command": "$(npm bin)/eslint -c .eslintrc.js tests lib",
       "env": {
         "NODE_ENV": "test"
       }
