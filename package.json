@@ -1,6 +1,6 @@
 {
   "name": "c-ast",
-  "version": "0.0.2",
+  "version": "0.0.6",
   "author": "Bailey Cosier",
   "homepage": "https://github.com/cosier/cast#readme",
   "description": "Ansi C AST Generator",
