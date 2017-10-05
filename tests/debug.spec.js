@@ -32,15 +32,3 @@ const helpers = require('./test_helper');
 const setup = helpers.setup;
 
 //////////////////////////////////////////////////////////////////////
-
-describe('Debugging', async () => {
-    let ast;
-
-    before(async () => {
-        ast = await ast_gen(setup(samples.MACROS).input);
-    })
-
-    it('should recognize macros', async () => {
-        expect(ast.count(COMM)).to.deep.equal({ [COMM]: 4 })
-    })
-});

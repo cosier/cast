@@ -79,6 +79,22 @@ describe('Functions', async () => {
   });
 });
 
+describe('Realworld functions', async () => {
+  let ast;
+
+  before(async () => {
+      ast = await ast_gen(setup(samples.EXAMPLE_1).input);
+  })
+
+  it('should parse `code` nodes', async () => {
+      const node = ast[CODE][36];
+      const comment_id = ast.keys(COMM)[1];
+      const comment = ast[COMM][comment_id];
+      expect(node.assocs).to.deep.equal({ [COMM]: [comment.id] })
+      expect(ast.count(COMM)).to.deep.equal({ [COMM]: 2 })
+  })
+});
+
 // ////////////////////////////////////////////////////////////////////
 describe('Structures', async () => {
   let ast;

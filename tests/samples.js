@@ -267,6 +267,62 @@ NK_API const struct nk_command* nk__next(struct nk_context*, const struct nk_com
 NK_API nk_flags nk_convert(struct nk_context*, struct nk_buffer *cmds, struct nk_buffer *vertices, struct nk_buffer *elements, const struct nk_convert_config*);
 `;
 
+const EXAMPLE_1 = `
+
+/*
+* ==============================================================
+*
+*                          MATH
+*
+* ===============================================================
+*/
+/*  Since nuklear is supposed to work on all systems providing floating point
+   math without any dependencies I also had to implement my own math functions
+   for sqrt, sin and cos. Since the actual highly accurate implementations for
+   the standard library functions are quite complex and I do not need high
+   precision for my use cases I use approximations.
+
+   Sqrt
+   ----
+   For square root nuklear uses the famous fast inverse square root:
+   https://en.wikipedia.org/wiki/Fast_inverse_square_root with
+   slightly tweaked magic constant. While on today's hardware it is
+   probably not faster it is still fast and accurate enough for
+   nuklear's use cases. IMPORTANT: this requires float format IEEE 754
+
+   Sine/Cosine
+   -----------
+   All constants inside both function are generated Remez's minimax
+   approximations for value range 0...2*PI. The reason why I decided to
+   approximate exactly that range is that nuklear only needs sine and
+   cosine to generate circles which only requires that exact range.
+   In addition I used Remez instead of Taylor for additional precision:
+   www.lolengine.net/blog/2011/12/21/better-function-approximations.
+
+   The tool I used to generate constants for both sine and cosine
+   (it can actually approximate a lot more functions) can be
+   found here: www.lolengine.net/wiki/oss/lolremez
+*/
+NK_INTERN float
+nk_inv_sqrt(float number)
+{
+   float x2;
+   const float threehalfs = 1.5f;
+   union {nk_uint i; float f;} conv = {0};
+   conv.f = number;
+   x2 = number * 0.5f;
+   conv.i = 0x5f375A84 - (conv.i >> 1);
+   conv.f = conv.f * (threehalfs - (x2 * conv.f * conv.f));
+   return conv.f;
+}
+
+NK_INTERN float
+nk_sqrt(float x)
+{
+   return x * nk_inv_sqrt(x);
+}
+`
+
 const SAMPLES = {
   STRUCT_FUNCS,
   STRUCT_DECLS,
@@ -276,7 +332,8 @@ const SAMPLES = {
   COMM_SPACES,
   ENUMS,
   ENUMS_SINGLE_LINE,
-  MACROS
+  MACROS,
+  EXAMPLE_1
 };
 
 module.exports = SAMPLES;
