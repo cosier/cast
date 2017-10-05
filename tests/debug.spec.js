@@ -32,3 +32,22 @@ const helpers = require('./test_helper');
 const setup = helpers.setup;
 
 //////////////////////////////////////////////////////////////////////
+
+describe('Structures', async () => {
+    let ast;
+  
+    before(async () => {
+      ast = await ast_gen(setup(samples.STRUCT).input);
+    });
+
+  it('should handle inner members', async () => {
+    const lookup = ast.index[5];
+    // const def_node = ast.node(3);
+    const comm_node = ast.node(5);
+    const inner_node = ast.node(7);
+
+    expect(lookup.type).to.equal('comments');
+    expect(inner_node.assocs).to.have.property('comments');
+    expect(inner_node.assocs.comments[0]).to.equal(comm_node.id);
+  });
+});
