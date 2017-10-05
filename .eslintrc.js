@@ -1,6 +1,5 @@
 module.exports = {
   "extends": ["eslint:recommended", "google"],
-  "parser": "babel-eslint",
   "parserOptions": {
     "ecmaFeatures": {
       "jsx": true,
@@ -10,7 +9,7 @@ module.exports = {
   "rules": {
     "camelcase": 0,
     "no-console": 0,
-    "brace-style": { "properties": "stroustrup" }
+    "brace-style": ["error", "stroustrup"]
   },
   "globals": {
     "require": true,
