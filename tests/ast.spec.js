@@ -127,6 +127,23 @@ describe('Func Sequences', async () => {
   });
 });
 
+describe('Func Declarations', async () => {
+  let ast;
+
+  before(async () => {
+    ast = await ast_gen(setup(samples.FUNC_DECLARATIONS).input);
+  });
+  
+  it('should isolate neighboring comment associations', async () => {
+    const codes = Object.keys(ast[CODE]);
+    for (i in codes) {
+      let n = ast[CODE][codes[i]];
+      expect(n).to.have.property('assocs');
+      expect(n.assocs[COMM].length).to.deep.equal(1);
+    }
+  });
+});
+
 
 // ////////////////////////////////////////////////////////////////////
 describe('Structures', async () => {

@@ -33,7 +33,20 @@ nk_vec2(float x, float y)
     return ret;
 }
 
+`
 
+const FUNC_DECLARATIONS = `
+/*  nk_free - Frees all memory allocated by nuklear. Not needed if context was
+*  initialized with \`nk_init_fixed\`.
+*  Parameters:
+*      @ctx must point to a previously initialized \`nk_context\` struct */
+NK_API void nk_free(struct nk_context*);
+#ifdef NK_INCLUDE_COMMAND_USERDATA
+/*  nk_set_user_data - Sets the currently passed userdata passed down into each draw command.
+*  Parameters:
+*      @ctx must point to a previously initialized \`nk_context\` struct
+*      @data handle with either pointer or index to be passed into every draw commands */
+NK_API void nk_set_user_data(struct nk_context*, nk_handle handle);
 `
 
 const STRUCT =
@@ -349,6 +362,8 @@ nk_sqrt(float x)
 }
 `
 
+
+
 const SAMPLES = {
   STRUCT_FUNCS,
   STRUCT_DECLS,
@@ -356,6 +371,7 @@ const SAMPLES = {
   STRUCT_DOC,
   FUNC,
   FUNC_SEQUENCE,
+  FUNC_DECLARATIONS,
   COMM_SPACES,
   ENUMS,
   ENUMS_SINGLE_LINE,

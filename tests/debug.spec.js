@@ -37,7 +37,8 @@ describe('Debugging table', async () => {
     let ast;
 
     before(async () => {
-      ast = await ast_gen(setup(samples.ENUMS).input);
-    })
+      ast = await ast_gen(setup(samples.FUNC_DECLARATIONS).input);
+    });
+
 
 });
