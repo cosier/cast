@@ -49,7 +49,7 @@
       "env": {
         "NODE": "node",
         "RUNNER": "mocha",
-        "OPTS": "-R nyan -c --watch --glob",
+        "OPTS": "-R nyan -c --glob",
         "GLOB": "*.spec.js",
         "TEST_DIR": "tests",
         "NODE_ENV": "test"
@@ -58,7 +58,8 @@
     "test:debug": {
       "command": "better-npm-run test",
       "env": {
-        "RUNNER": "mocha debug"
+        "RUNNER": "mocha debug",
+        "OPTS": "-R nyan -c --watch --glob"
       }
     },
     "lint": {
