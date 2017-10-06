@@ -88,12 +88,29 @@ describe('Realworld functions', async () => {
   })
 
   it('should parse `code` nodes', async () => {
-    const node = ast[CODE][36];
+    expect(ast[CODE][36].type).to.deep.equal(CODE)
+  })
+
+  it('should associate `comment` with following `code`', async () => {
+    const code = ast[CODE][36];
     const comment_id = ast.keys(COMM)[1];
     const comment = ast[COMM][comment_id];
-    expect(node.assocs).to.deep.equal({ [COMM]: [comment.id] })
+
+    expect(comment.assocs).to.deep.equal({ [CODE]: [code.id] })
+  })
+
+  it('should associate `code` with previous `comment`', async () => {
+    const code = ast[CODE][36];
+    const comment_id = ast.keys(COMM)[1];
+    const comment = ast[COMM][comment_id];
+
+    expect(code.assocs).to.deep.equal({ [COMM]: [comment.id] })
+  })
+
+  it('should recognize 2 seperate multi-line comments', async () => {
     expect(ast.count(COMM)).to.deep.equal({ [COMM]: 2 })
   })
+
 });
 
 // ////////////////////////////////////////////////////////////////////
