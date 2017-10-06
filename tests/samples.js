@@ -10,6 +10,32 @@ nk_window_get_size(const struct nk_context *ctx)
   int i = 0;
 }
 `
+
+const FUNC_SEQUENCE =
+`
+
+NK_INTERN struct nk_rect
+nk_pad_rect(struct nk_rect r, struct nk_vec2 pad)
+{
+    r.w = NK_MAX(r.w, 2 * pad.x);
+    r.h = NK_MAX(r.h, 2 * pad.y);
+    r.x += pad.x; r.y += pad.y;
+    r.w -= 2 * pad.x;
+    r.h -= 2 * pad.y;
+    return r;
+}
+
+NK_API struct nk_vec2
+nk_vec2(float x, float y)
+{
+    struct nk_vec2 ret;
+    ret.x = x; ret.y = y;
+    return ret;
+}
+
+
+`
+
 const STRUCT =
 `/**
  * nk_rect descriptive comment
@@ -329,6 +355,7 @@ const SAMPLES = {
   STRUCT,
   STRUCT_DOC,
   FUNC,
+  FUNC_SEQUENCE,
   COMM_SPACES,
   ENUMS,
   ENUMS_SINGLE_LINE,
