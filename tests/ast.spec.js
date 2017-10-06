@@ -276,6 +276,11 @@ describe('Enumerations', async () => {
   it('should have a closing scope tagged as definition node', async () => {
     expect(ast.index[78].type).to.equal(DEF);
   });
+
+  it('should have forward looking comment associations', async () => {
+    const comment = ast[COMM][89];
+    expect(comment.assocs).to.deep.equal({ [MEMB]: [90] });
+  });
 });
 
 // ////////////////////////////////////////////////////////////////////

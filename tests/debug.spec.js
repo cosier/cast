@@ -37,15 +37,7 @@ describe('Debugging table', async () => {
     let ast;
 
     before(async () => {
-      ast = await ast_gen(setup(samples.EXAMPLE_1).input);
-    })
-
-    it('should associate `comment` with following `code`', async () => {
-      const code = ast[CODE][36];
-      const comment_id = ast.keys(COMM)[1];
-      const comment = ast[COMM][comment_id];
-  
-      expect(comment.assocs).to.deep.equal({ [CODE]: [code.id] })
+      ast = await ast_gen(setup(samples.ENUMS).input);
     })
 
 });
