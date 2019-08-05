@@ -8,7 +8,7 @@ The resulting AST provides in-depth structured access and **meta data** to all d
 ## Features
 
 ####1. Comments **Extraction** and **Association** Lookup
-c-ast extracts all comments in the source code as their own nodes, along with intelligent node association. This allows easy lookup of code that belongs to a comment, or getting any comments that belong to a given code block via an abritrary line lookup.
+c-ast extracts all comments in the source code as their own nodes, along with intelligent node association. This allows easy lookup of code that belongs to a comment, or getting any comments that belong to a given code block via an arbitrary line lookup.
 
 ####2. **Indexed access** to all structured nodes in the source input
 An index is provided for fast lookup of any line, returning the node that spans that line along with node meta data.
