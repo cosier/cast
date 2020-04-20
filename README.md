@@ -48,7 +48,7 @@ An optional range argument is also available for limiting the resulting output.
 ## Getting Started (Javascript API)
 The Javascript APIs return a Promise which resolves into a AST data structure.
 
-```
+```javascript
 const cast = require('c-ast');
 
 // Parse text input directly
@@ -70,7 +70,7 @@ In this basic example, the JSON output outlines the various functions, structure
 $ c-ast transform specimen/examples.c
 ```
 
-```
+```json
 {
     "nodes": {
         "comments": {
